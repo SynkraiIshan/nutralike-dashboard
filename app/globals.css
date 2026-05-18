@@ -1,26 +1,98 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-lime-green: #25d366;
+  --color-golden-yellow: #ffd700;
+  --color-gray-icon: #899f87;
+  --color-dark-gray: #a3a29e;
+  --color-silver: #c3c3c3;
+  --color-white-smoke: #f2f6ef;
+  --color-dark-gray-400: #222222;
+  --color-dark-orange: #ff8800;
+  --color-charcoal: #314f2d;
+  --color-black-1: #0a0a0a;
+  --color-dark-gray-text: #373737;
+  --color-charcoal-text: #314f2d;
+  --color-dark-slate-gray: #3c5d39;
+  --color-dim-gray: #555555;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+@layer base {
+  html { height: 100%; }
+  body { height: 100%; background-color: #f2f6ef; }
+  * { box-sizing: border-box; }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer components {
+  .type-h1 {
+    font-family: 'Inter', sans-serif;
+    font-size: 45px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
   }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  .type-h2 {
+    font-family: 'Inter', sans-serif;
+    font-size: 30px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+  }
+  .type-h3 {
+    font-family: 'Inter', sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+  }
+  .type-h3-20 {
+    font-family: 'Inter', sans-serif;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+  }
+  .type-h3-18 {
+    font-family: 'Inter', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+  }
+  .type-h4 {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+  }
+  .type-h5 {
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+  }
+  .type-body {
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.70;
+  }
+  .type-small-body {
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 400;
+    line-height: 1.60;
+  }
+  .type-caption {
+    font-family: 'Helvetica Neue', Helvetica, sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.60;
+  }
+  .type-button {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+  }
+  .type-subheading {
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.60;
+  }
 }
