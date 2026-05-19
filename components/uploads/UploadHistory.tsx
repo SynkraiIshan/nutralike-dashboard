@@ -136,7 +136,7 @@ export default function UploadHistory({ uploads, onRetry }: UploadHistoryProps) 
                 ) : upload.status === 'completed' ? (
                   <button
                     onClick={() => toast.success('Opening ' + upload.fileName)}
-                    className="text-xs text-[#314f2d] hover:underline font-medium"
+                    className="text-xs text-[#314f2d] hover:underline font-medium cursor-pointer"
                   >
                     View
                   </button>

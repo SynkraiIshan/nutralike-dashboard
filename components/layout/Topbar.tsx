@@ -32,7 +32,7 @@ export default function Topbar({ onMobileMenuClick }: TopbarProps) {
         {/* Hamburger - mobile only */}
         <button
           onClick={onMobileMenuClick}
-          className="lg:hidden p-2 rounded-lg hover:bg-[#f2f6ef] text-[#373737] transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+          className="lg:hidden p-2 rounded-lg hover:bg-[#f2f6ef] text-[#373737] transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer"
           aria-label="Open navigation menu"
         >
           <Menu size={20} />
@@ -55,7 +55,7 @@ export default function Topbar({ onMobileMenuClick }: TopbarProps) {
         </div>
 
         {/* Bell */}
-        <button className="relative p-2 rounded-lg hover:bg-[#f2f6ef] transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center">
+        <button className="relative p-2 rounded-lg hover:bg-[#f2f6ef] transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center cursor-pointer">
           <Bell size={18} className="text-[#373737]" />
           <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#ff8800]" />
         </button>

@@ -57,14 +57,14 @@ export default function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
           </div>
           <button
             onClick={onClose}
-            className="text-white/60 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+            className="text-white/60 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
           >
             <X size={18} />
           </button>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+        <nav className="flex-1 px-3 py-4 space-y-3 overflow-y-auto">
           {NAV_ITEMS.map(({ label, href, icon: Icon }) => {
             const isActive = pathname === href || pathname.startsWith(href + '/');
             return (
@@ -73,13 +73,13 @@ export default function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                 href={href}
                 onClick={onClose}
                 className={[
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150',
+                  'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 cursor-pointer',
                   isActive ? 'text-white' : 'text-white/90 hover:text-white hover:bg-white/5',
                 ].join(' ')}
                 style={isActive ? { background: 'linear-gradient(90deg, #7c9f43, #597a3e)' } : {}}
               >
-                <Icon size={18} className={isActive ? 'text-white' : 'text-[#899f87]'} />
-                <span className="text-sm font-medium">{label}</span>
+                <Icon size={20} className={isActive ? 'text-white' : 'text-[#899f87]'} />
+                <span className="text-[15px] font-medium">{label}</span>
               </Link>
             );
           })}
@@ -92,7 +92,7 @@ export default function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
               document.cookie = 'nutralike_auth=; path=/; max-age=0; samesite=lax';
               window.location.href = '/login';
             }}
-            className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-white/60 hover:text-white hover:bg-white/5 transition-all duration-150"
+            className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-white/60 hover:text-white hover:bg-white/5 transition-all duration-150 cursor-pointer"
           >
             <LogOut size={18} className="text-[#899f87]" />
             <span className="text-sm font-medium">Logout</span>

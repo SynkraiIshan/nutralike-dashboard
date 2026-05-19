@@ -41,7 +41,7 @@ export default function Toggle({
         aria-checked={checked}
         onClick={() => onChange(!checked)}
         className={[
-          'relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200',
+          'relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 cursor-pointer',
           'focus:outline-none focus:ring-2 focus:ring-[#314f2d]/30 flex-shrink-0',
           checked ? 'bg-[#314f2d]' : 'bg-[#c3c3c3]',
         ].join(' ')}

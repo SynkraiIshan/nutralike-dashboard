@@ -77,14 +77,14 @@ export default function ClientTable({ clients, onEdit, onDelete }: ClientTablePr
                   <div className="flex items-center gap-2 relative">
                     <button
                       onClick={() => onEdit(client)}
-                      className="p-1.5 rounded-lg text-[#555555] hover:text-[#314f2d] hover:bg-[#314f2d]/10 transition-colors"
+                      className="p-1.5 rounded-lg text-[#555555] hover:text-[#314f2d] hover:bg-[#314f2d]/10 transition-colors cursor-pointer"
                     >
                       <Pencil size={15} />
                     </button>
                     <div className="relative">
                       <button
                         onClick={() => setDeleteId(deleteId === client.id ? null : client.id)}
-                        className="p-1.5 rounded-lg text-[#555555] hover:text-red-500 hover:bg-red-50 transition-colors"
+                        className="p-1.5 rounded-lg text-[#555555] hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
                       >
                         <Trash2 size={15} />
                       </button>

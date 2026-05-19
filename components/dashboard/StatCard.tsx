@@ -17,17 +17,17 @@ export default function StatCard({ title, value, icon, trend, trendType = 'posit
   };
 
   return (
-    <Card className="flex flex-col gap-3">
+    <Card padding={false} className="p-4 flex flex-col gap-2">
       <div className="flex items-start justify-between">
-        <div className="w-10 h-10 rounded-lg bg-[#314f2d]/10 flex items-center justify-center text-[#314f2d]">
+        <div className="w-8 h-8 rounded-lg bg-[#314f2d]/10 flex items-center justify-center text-[#314f2d]">
           {icon}
         </div>
       </div>
       <div>
-        <p className="type-h2 text-[#0a0a0a] leading-none">{value}</p>
-        <p className="type-small-body text-[#555555] mt-1">{title}</p>
+        <p className="type-h3 text-[#0a0a0a] leading-none">{value}</p>
+        <p className="text-xs font-medium text-[#555555] mt-1">{title}</p>
       </div>
-      <span className={`inline-flex items-center self-start px-2 py-0.5 rounded-full text-[11px] font-medium ${trendColors[trendType]}`}>
+      <span className={`inline-flex items-center self-start px-2 py-0.5 rounded-full text-[10px] font-medium ${trendColors[trendType]}`}>
         {trend}
       </span>
     </Card>

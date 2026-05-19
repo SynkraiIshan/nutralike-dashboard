@@ -147,14 +147,14 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => toast.success(`Role updated for ${u.name}`)}
-                        className="text-[12px] text-[#314f2d] hover:underline font-medium"
+                        className="text-[12px] text-[#314f2d] hover:underline font-medium cursor-pointer"
                       >
                         Edit Role
                       </button>
                       {u.status === 'Active' && (
                         <button
                           onClick={() => toast.success(`${u.name} deactivated`)}
-                          className="text-[12px] text-red-500 hover:underline font-medium"
+                          className="text-[12px] text-red-500 hover:underline font-medium cursor-pointer"
                         >
                           Deactivate
                         </button>

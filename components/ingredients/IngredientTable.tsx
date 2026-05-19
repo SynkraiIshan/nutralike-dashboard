@@ -96,7 +96,7 @@ export default function IngredientTable({
                   <div className="flex items-center gap-2 relative">
                     <button
                       onClick={() => onEdit(ing)}
-                      className="p-1.5 rounded-lg text-[#555555] hover:text-[#314f2d] hover:bg-[#314f2d]/10 transition-colors"
+                      className="p-1.5 rounded-lg text-[#555555] hover:text-[#314f2d] hover:bg-[#314f2d]/10 transition-colors cursor-pointer"
                       title="Edit ingredient"
                     >
                       <Pencil size={15} />
@@ -106,7 +106,7 @@ export default function IngredientTable({
                         onClick={() =>
                           setDeleteConfirmId(deleteConfirmId === ing.id ? null : ing.id)
                         }
-                        className="p-1.5 rounded-lg text-[#555555] hover:text-red-500 hover:bg-red-50 transition-colors"
+                        className="p-1.5 rounded-lg text-[#555555] hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
                         title="Delete ingredient"
                       >
                         <Trash2 size={15} />

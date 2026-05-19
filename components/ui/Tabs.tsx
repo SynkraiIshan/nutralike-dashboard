@@ -16,7 +16,7 @@ export default function Tabs({ tabs, activeTab, onChange, className = '' }: Tabs
           key={tab.id}
           onClick={() => onChange(tab.id)}
           className={[
-            'flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-all duration-150',
+            'flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-all duration-150 cursor-pointer',
             'focus:outline-none border-b-2 -mb-px',
             activeTab === tab.id
               ? 'border-[#314f2d] text-[#314f2d]'

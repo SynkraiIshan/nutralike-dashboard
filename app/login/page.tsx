@@ -94,8 +94,8 @@ export default function LoginPage() {
             </p>
 
             {/* Feature Cards Grid */}
-            <div className="grid grid-cols-2 gap-4 pt-2">
-              <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 shadow-xl space-y-1.5 hover:bg-white/15 transition-all">
+            <div className="grid grid-cols-2 gap-0 divide-x divide-white/15 pt-2">
+              <div className="pr-6 space-y-1.5">
                 <div className="w-9 h-9 rounded-xl bg-[#7c9f43] flex items-center justify-center text-white">
                   <FileText size={20} />
                 </div>
@@ -103,7 +103,7 @@ export default function LoginPage() {
                 <p className="text-xs text-white/70 leading-relaxed">Automated Excel & document parsing with real-time specification validation.</p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 shadow-xl space-y-1.5 hover:bg-white/15 transition-all">
+              <div className="pl-6 space-y-1.5">
                 <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#7c9f43] to-[#597a3e] flex items-center justify-center text-white">
                   <Bot size={20} />
                 </div>
@@ -116,7 +116,6 @@ export default function LoginPage() {
           {/* Footer Copyright */}
           <div className="border-t border-white/15 pt-5 flex items-center justify-between text-xs text-white/60">
             <span>© {new Date().getFullYear()} Nutralike Healthcare. All rights reserved.</span>
-            <span>Version 2.4-Enterprise</span>
           </div>
 
         </div>
@@ -204,7 +203,7 @@ export default function LoginPage() {
                   Password
                 </label>
                 <a href="#forgot" onClick={(e) => { e.preventDefault(); alert('Demo Mode: Please use password "admin123"'); }} 
-                   className="text-xs font-semibold text-[#7c9f43] hover:text-[#597a3e] hover:underline transition-colors">
+                   className="text-xs font-semibold text-[#7c9f43] hover:text-[#597a3e] hover:underline transition-colors cursor-pointer">
                   Forgot Password?
                 </a>
               </div>
@@ -223,7 +222,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#a3a29e] hover:text-[#373737] transition-colors focus:outline-none"
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#a3a29e] hover:text-[#373737] transition-colors focus:outline-none cursor-pointer"
                   title={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -255,7 +254,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading || success}
-              className="w-full py-3.5 rounded-xl text-white font-bold text-sm sm:text-base shadow-xl hover:shadow-2xl active:scale-[0.99] transition-all disabled:opacity-80 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2 group overflow-hidden relative"
+              className="w-full py-3.5 rounded-xl text-white font-bold text-sm sm:text-base shadow-xl hover:shadow-2xl active:scale-[0.99] transition-all disabled:opacity-80 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2 group overflow-hidden relative cursor-pointer"
               style={{ background: 'linear-gradient(90deg, #7c9f43 0%, #597a3e 100%)' }}
             >
               {isLoading || success ? (

@@ -70,7 +70,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
       <button
         onClick={onToggle}
         className={[
-          'absolute top-[52px] -right-3 z-50',
+          'absolute top-[52px] -right-3 z-50 cursor-pointer',
           'w-6 h-6 rounded-full border border-[#c3c3c3] bg-white shadow-md',
           'flex items-center justify-center text-[#314f2d]',
           'hover:bg-[#f2f6ef] transition-colors',
@@ -81,7 +81,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
       </button>
 
       {/* Nav */}
-      <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto overflow-x-hidden">
+      <nav className="flex-1 px-2 py-4 space-y-3 overflow-y-auto overflow-x-hidden">
         {NAV_ITEMS.map(({ label, href, icon: Icon }) => {
           const isActive = pathname === href || pathname.startsWith(href + '/');
           return (
@@ -90,7 +90,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
               href={href}
               title={collapsed ? label : undefined}
               className={[
-                'flex items-center rounded-lg transition-all duration-150',
+                'flex items-center rounded-lg transition-all duration-150 cursor-pointer',
                 collapsed ? 'justify-center px-0 py-2.5' : 'gap-3 px-3 py-2.5',
                 isActive
                   ? 'text-white'
@@ -98,9 +98,9 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
               ].join(' ')}
               style={isActive ? { background: 'linear-gradient(90deg, #7c9f43, #597a3e)' } : {}}
             >
-              <Icon size={18} className={isActive ? 'text-white' : 'text-[#899f87]'} />
+              <Icon size={20} className={isActive ? 'text-white' : 'text-[#899f87]'} />
               {!collapsed && (
-                <span className="text-sm font-medium whitespace-nowrap">{label}</span>
+                <span className="text-[15px] font-medium whitespace-nowrap">{label}</span>
               )}
             </Link>
           );
@@ -116,7 +116,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           }}
           title={collapsed ? 'Logout' : undefined}
           className={[
-            'flex items-center w-full rounded-lg text-white/60 hover:text-white hover:bg-white/5 transition-all duration-150',
+            'flex items-center w-full rounded-lg text-white/60 hover:text-white hover:bg-white/5 transition-all duration-150 cursor-pointer',
             collapsed ? 'justify-center px-0 py-2.5' : 'gap-3 px-3 py-2.5',
           ].join(' ')}
         >

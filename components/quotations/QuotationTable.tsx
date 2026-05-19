@@ -76,7 +76,7 @@ export default function QuotationTable({ quotations }: QuotationTableProps) {
                   </Link>
                   <button
                     onClick={() => toast.success(`Quotation ${q.id.toUpperCase()} PDF downloaded`)}
-                    className="p-1.5 rounded-lg text-[#555555] hover:text-[#314f2d] hover:bg-[#314f2d]/10 transition-colors"
+                    className="p-1.5 rounded-lg text-[#555555] hover:text-[#314f2d] hover:bg-[#314f2d]/10 transition-colors cursor-pointer"
                     title="Download PDF"
                   >
                     <Download size={15} />

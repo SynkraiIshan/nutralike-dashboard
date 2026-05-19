@@ -19,28 +19,28 @@ export default function DashboardPage() {
         <StatCard
           title="Total Ingredients"
           value={MOCK_INGREDIENTS.length}
-          icon={<Package size={20} />}
+          icon={<Package size={18} />}
           trend="+8 this month"
           trendType="positive"
         />
         <StatCard
           title="Quotations This Month"
           value={MOCK_QUOTATIONS.length}
-          icon={<FileText size={20} />}
+          icon={<FileText size={18} />}
           trend="+12% vs last month"
           trendType="positive"
         />
         <StatCard
           title="Active Clients"
           value={MOCK_CLIENTS.length}
-          icon={<Users size={20} />}
+          icon={<Users size={18} />}
           trend="3 new this week"
           trendType="positive"
         />
         <StatCard
           title="Pending Quotations"
           value={pendingCount}
-          icon={<Clock size={20} />}
+          icon={<Clock size={18} />}
           trend="Needs action"
           trendType="warning"
         />

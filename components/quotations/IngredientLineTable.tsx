@@ -171,7 +171,7 @@ export default function IngredientLineTable({ lines, onChange }: IngredientLineT
                                 key={sug.id}
                                 type="button"
                                 onMouseDown={() => handleSelectIngredient(line.id, sug)}
-                                className="w-full text-left px-3 py-2 text-[13px] hover:bg-[#f2f6ef] transition-colors"
+                                className="w-full text-left px-3 py-2 text-[13px] hover:bg-[#f2f6ef] transition-colors cursor-pointer"
                               >
                                 <span className="font-medium text-[#0a0a0a]">{sug.name}</span>
                                 <span className="text-[#555555] ml-2 text-[11px]">₹{sug.pricePerHundredKg}/100KG</span>
@@ -186,7 +186,7 @@ export default function IngredientLineTable({ lines, onChange }: IngredientLineT
                         <select
                           value={line.unit}
                           onChange={(e) => updateLine(line.id, { unit: e.target.value as Unit })}
-                          className="px-2 py-1.5 text-[13px] border border-[#c3c3c3] rounded-lg focus:outline-none focus:border-[#314f2d] bg-white"
+                          className="px-2 py-1.5 text-[13px] border border-[#c3c3c3] rounded-lg focus:outline-none focus:border-[#314f2d] bg-white cursor-pointer"
                         >
                           {UNIT_OPTIONS.map((u) => <option key={u} value={u}>{u}</option>)}
                         </select>
@@ -241,7 +241,7 @@ export default function IngredientLineTable({ lines, onChange }: IngredientLineT
                       <td className="px-3 py-2">
                         <button
                           onClick={() => removeRow(line.id)}
-                          className="p-1 rounded text-[#a3a29e] hover:text-red-500 hover:bg-red-50 transition-colors"
+                          className="p-1 rounded text-[#a3a29e] hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
                         >
                           <X size={14} />
                         </button>

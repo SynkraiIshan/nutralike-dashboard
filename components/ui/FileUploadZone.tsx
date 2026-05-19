@@ -81,7 +81,7 @@ export default function FileUploadZone({
           <button
             type="button"
             onClick={handleClear}
-            className="text-red-400 hover:text-red-600 transition-colors p-1 rounded"
+            className="text-red-400 hover:text-red-600 transition-colors p-1 rounded cursor-pointer"
           >
             <X size={16} />
           </button>

@@ -50,7 +50,7 @@ export default function Modal({
           <h2 className="type-h3-18 text-[#0a0a0a]">{title}</h2>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-[#f2f6ef] text-[#555555] transition-colors"
+            className="p-1.5 rounded-lg hover:bg-[#f2f6ef] text-[#555555] transition-colors cursor-pointer"
           >
             <X size={18} />
           </button>
