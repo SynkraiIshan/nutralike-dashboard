@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Bot } from 'lucide-react';
 import StepIndicator from './StepIndicator';
 import IngredientLineTable, { LineItem } from './IngredientLineTable';
 import QuotationPreview from './QuotationPreview';
@@ -167,7 +167,7 @@ export default function QuotationWizard({ onComplete }: QuotationWizardProps) {
               className="mt-3 w-full"
               onClick={handleExtract}
               loading={isExtracting}
-              leftIcon={!isExtracting ? <span>🤖</span> : undefined}
+              leftIcon={!isExtracting ? <Bot size={16} /> : undefined}
             >
               {isExtracting ? 'Extracting Ingredients...' : 'Extract Ingredients'}
             </Button>

@@ -2,12 +2,29 @@
 import { Upload as UploadType } from '@/types';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
-import { Loader2, CheckCircle2, XCircle, RefreshCw, Upload } from 'lucide-react';
+import { 
+  Loader2, CheckCircle2, XCircle, RefreshCw, Upload, 
+  FileSpreadsheet, FileText, FileEdit, Image as ImageIcon, File, Folder 
+} from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
-const FILE_ICONS: Record<string, string> = {
-  xlsx: '📊', pdf: '📄', docx: '📝', jpg: '🖼️', png: '🖼️', txt: '📃',
+const getFileIcon = (fileType: string) => {
+  switch (fileType.toLowerCase()) {
+    case 'xlsx':
+      return <FileSpreadsheet size={16} className="text-[#1a9e4a] flex-shrink-0" />;
+    case 'pdf':
+      return <FileText size={16} className="text-red-500 flex-shrink-0" />;
+    case 'docx':
+      return <FileEdit size={16} className="text-blue-500 flex-shrink-0" />;
+    case 'jpg':
+    case 'png':
+      return <ImageIcon size={16} className="text-purple-500 flex-shrink-0" />;
+    case 'txt':
+      return <File size={16} className="text-gray-500 flex-shrink-0" />;
+    default:
+      return <Folder size={16} className="text-[#314f2d] flex-shrink-0" />;
+  }
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -58,7 +75,7 @@ export default function UploadHistory({ uploads, onRetry }: UploadHistoryProps) 
             >
               <td className="px-4 py-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-base">{FILE_ICONS[upload.fileType] ?? '📁'}</span>
+                  {getFileIcon(upload.fileType)}
                   <span className="font-medium text-[#0a0a0a] truncate max-w-[160px]">
                     {upload.fileName}
                   </span>

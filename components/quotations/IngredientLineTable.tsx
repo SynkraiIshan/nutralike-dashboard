@@ -230,7 +230,7 @@ export default function IngredientLineTable({ lines, onChange }: IngredientLineT
                       <td className="px-3 py-2">
                         {line.source === 'ai-estimated' ? (
                           <span className="inline-flex items-center gap-1">
-                            <Badge label="🤖 AI" variant="ai" />
+                            <Badge label="AI" variant="ai" />
                           </span>
                         ) : (
                           <Badge label="DB" variant="info" />

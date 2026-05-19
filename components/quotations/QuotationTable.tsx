@@ -49,9 +49,9 @@ export default function QuotationTable({ quotations }: QuotationTableProps) {
             <tr
               key={q.id}
               className={[
-                'group border-b border-[#e8ece5] transition-all duration-100',
+                'group border-b border-l-4 border-l-transparent border-[#e8ece5] transition-all duration-100',
                 i % 2 === 0 ? 'bg-white' : 'bg-[#f2f6ef]',
-                'hover:bg-[#f2f6ef] hover:border-l-4 hover:border-l-[#314f2d]',
+                'hover:bg-[#f2f6ef] hover:border-l-[#314f2d]',
               ].join(' ')}
             >
               <td className="px-4 py-3 text-[#555555] font-mono text-xs uppercase">{q.id}</td>

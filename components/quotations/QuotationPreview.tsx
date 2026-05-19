@@ -1,5 +1,6 @@
 import { LineItem } from './IngredientLineTable';
 import { computeQuotationTotal } from '@/lib/utils';
+import { Bot } from 'lucide-react';
 
 interface ClientInfo {
   name: string;
@@ -75,10 +76,10 @@ export default function QuotationPreview({
               {lines.map((line, i) => (
                 <tr key={line.id} className="border-b border-[#f2f6ef]">
                   <td className="py-2 pr-4 text-[#555555] text-[12px]">{i + 1}</td>
-                  <td className="py-2 pr-4 font-medium text-[#0a0a0a]">
-                    {line.ingredientName || '-'}
+                  <td className="py-2 pr-4 font-medium text-[#0a0a0a] flex items-center gap-1.5">
+                    <span>{line.ingredientName || '-'}</span>
                     {line.source === 'ai-estimated' && (
-                      <span className="ml-1.5 text-[11px]">🤖</span>
+                      <Bot size={12} className="text-[#7c9f43] flex-shrink-0" />
                     )}
                   </td>
                   <td className="py-2 pr-4 text-[#555555]">{line.unit}</td>
@@ -125,7 +126,7 @@ export default function QuotationPreview({
 
         {aiCount > 0 && (
           <div className="mt-3 flex items-start gap-2 bg-[#7c9f43]/10 border border-[#7c9f43]/30 rounded-lg px-3 py-2">
-            <span className="text-base leading-none mt-0.5">🤖</span>
+            <Bot size={14} className="text-[#7c9f43] mt-0.5 flex-shrink-0" />
             <p className="text-[12px] text-[#597a3e]">
               {aiCount} ingredient price{aiCount > 1 ? 's' : ''} estimated by AI based on market data.
               Final prices may vary.
