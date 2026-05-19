@@ -1,7 +1,7 @@
 'use client';
 import { use } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Download, Share2 } from 'lucide-react';
+import { ArrowLeft, Download, Share2, Bot } from 'lucide-react';
 import { MOCK_QUOTATIONS } from '@/lib/mock-data/quotations';
 import { Quotation } from '@/types';
 import Card from '@/components/ui/Card';
@@ -115,9 +115,9 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
                 {quotation.ingredients.map((line, i) => (
                   <tr key={`${line.ingredientId}-${i}`} className="border-b border-[#f2f6ef]">
                     <td className="py-3 pr-4 text-[#555555] text-[12px]">{i + 1}</td>
-                    <td className="py-3 pr-4 font-medium text-[#0a0a0a]">
-                      {line.ingredientName}
-                      {line.source === 'ai-estimated' && <span className="ml-1">🤖</span>}
+                    <td className="py-3 pr-4 font-medium text-[#0a0a0a] flex items-center gap-1.5">
+                      <span>{line.ingredientName}</span>
+                      {line.source === 'ai-estimated' && <Bot size={13} className="text-[#7c9f43] flex-shrink-0" />}
                     </td>
                     <td className="py-3 pr-4 text-[#555555]">{line.unit}</td>
                     <td className="py-3 pr-4 text-[#373737] tabular-nums">{line.qtyUsed}</td>
@@ -129,7 +129,7 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
                     </td>
                     <td className="py-3">
                       <Badge
-                        label={line.source === 'ai-estimated' ? '🤖 AI' : 'DB'}
+                        label={line.source === 'ai-estimated' ? 'AI' : 'DB'}
                         variant={line.source === 'ai-estimated' ? 'ai' : 'info'}
                       />
                     </td>
@@ -169,7 +169,7 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
 
           {aiCount > 0 && (
             <div className="mt-3 flex items-start gap-2 bg-[#7c9f43]/10 border border-[#7c9f43]/30 rounded-lg px-3 py-2">
-              <span className="text-base leading-none mt-0.5">🤖</span>
+              <Bot size={14} className="text-[#7c9f43] mt-0.5 flex-shrink-0" />
               <p className="text-[12px] text-[#597a3e]">
                 Note: {aiCount} ingredient price{aiCount > 1 ? 's' : ''} estimated by AI based on market data.
                 Final prices may vary.
