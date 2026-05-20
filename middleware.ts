@@ -10,7 +10,6 @@ export function middleware(request: NextRequest) {
                            pathname.startsWith('/ingredients') ||
                            pathname.startsWith('/quotations') ||
                            pathname.startsWith('/uploads') ||
-                           pathname.startsWith('/clients') ||
                            pathname.startsWith('/settings') ||
                            pathname.startsWith('/reports');
 

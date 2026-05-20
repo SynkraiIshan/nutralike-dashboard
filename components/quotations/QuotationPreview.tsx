@@ -1,16 +1,11 @@
 import { LineItem } from './IngredientLineTable';
 import { computeQuotationTotal } from '@/lib/utils';
+import { parsePackWeightGrams } from '@/lib/mock-data/packaging-materials';
+import { QuotationClientInfo } from '@/types';
 import { Bot } from 'lucide-react';
 
-interface ClientInfo {
-  name: string;
-  email: string;
-  productName: string;
-  description: string;
-}
-
 interface QuotationPreviewProps {
-  clientInfo: ClientInfo;
+  clientInfo: QuotationClientInfo;
   lines: LineItem[];
   markup?: number;
   overhead?: number;
@@ -42,7 +37,7 @@ export default function QuotationPreview({
             <p className="text-white text-sm font-medium">{today}</p>
           </div>
         </div>
-        <div className="mt-3 flex gap-6">
+        <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2">
           <div>
             <p className="text-white/60 text-[11px] uppercase">Client</p>
             <p className="text-white text-sm font-medium">{clientInfo.name || '-'}</p>
@@ -51,6 +46,20 @@ export default function QuotationPreview({
             <div>
               <p className="text-white/60 text-[11px] uppercase">Email</p>
               <p className="text-white text-sm">{clientInfo.email}</p>
+            </div>
+          )}
+          {clientInfo.packagingType && (
+            <div>
+              <p className="text-white/60 text-[11px] uppercase">Packaging</p>
+              <p className="text-white text-sm capitalize">
+                {clientInfo.packagingType}
+                {clientInfo.packWeightG
+                  ? ` · ${parsePackWeightGrams(clientInfo.packWeightG)}g`
+                  : ''}
+                {clientInfo.packagingTier
+                  ? ` · ${clientInfo.packagingTier === 'min' ? 'Min' : 'Max'} tier`
+                  : ''}
+              </p>
             </div>
           )}
         </div>

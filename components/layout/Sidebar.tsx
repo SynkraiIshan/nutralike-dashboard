@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Package, FileText, Upload,
-  Users, Settings, BarChart2, LogOut,
+  Settings, BarChart2, LogOut,
   ChevronLeft, ChevronRight,
 } from 'lucide-react';
 
@@ -13,7 +13,6 @@ const NAV_ITEMS = [
   { label: 'Ingredients', href: '/ingredients', icon: Package },
   { label: 'Quotations',  href: '/quotations',  icon: FileText },
   { label: 'Uploads',     href: '/uploads',     icon: Upload },
-  { label: 'Clients',     href: '/clients',     icon: Users },
   { label: 'Settings',    href: '/settings',    icon: Settings },
   { label: 'Reports',     href: '/reports',     icon: BarChart2 },
 ];

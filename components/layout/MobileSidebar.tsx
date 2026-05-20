@@ -2,14 +2,13 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { X, LayoutDashboard, Package, FileText, Upload, Users, Settings, BarChart2, LogOut } from 'lucide-react';
+import { X, LayoutDashboard, Package, FileText, Upload, Settings, BarChart2, LogOut } from 'lucide-react';
 
 const NAV_ITEMS = [
   { label: 'Dashboard',   href: '/dashboard',   icon: LayoutDashboard },
   { label: 'Ingredients', href: '/ingredients', icon: Package },
   { label: 'Quotations',  href: '/quotations',  icon: FileText },
   { label: 'Uploads',     href: '/uploads',     icon: Upload },
-  { label: 'Clients',     href: '/clients',     icon: Users },
   { label: 'Settings',    href: '/settings',    icon: Settings },
   { label: 'Reports',     href: '/reports',     icon: BarChart2 },
 ];
