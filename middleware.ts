@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { AUTH_TOKEN_COOKIE, isTokenValid } from '@/lib/auth';
 
 export function middleware(request: NextRequest) {
-  const authCookie = request.cookies.get('nutralike_auth')?.value;
+  const token = request.cookies.get(AUTH_TOKEN_COOKIE)?.value;
+  const isAuthenticated = isTokenValid(token);
   const { pathname } = request.nextUrl;
 
   // Protected routes list
@@ -13,13 +15,13 @@ export function middleware(request: NextRequest) {
                            pathname.startsWith('/settings') ||
                            pathname.startsWith('/reports');
 
-  if (isProtectedRoute && authCookie !== 'authenticated') {
+  if (isProtectedRoute && !isAuthenticated) {
     const loginUrl = new URL('/login', request.url);
     return NextResponse.redirect(loginUrl);
   }
 
   // If already logged in and visiting login or root, redirect to dashboard
-  if ((pathname === '/login' || pathname === '/') && authCookie === 'authenticated') {
+  if ((pathname === '/login' || pathname === '/') && isAuthenticated) {
     const dashboardUrl = new URL('/dashboard', request.url);
     return NextResponse.redirect(dashboardUrl);
   }

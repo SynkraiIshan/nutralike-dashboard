@@ -2,10 +2,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { X, Plus } from 'lucide-react';
 import { Ingredient, Unit } from '@/types';
-import { MOCK_INGREDIENTS } from '@/lib/mock-data/ingredients';
+import { fetchIngredients, mapIngredientFromApi } from '@/lib/api/ingredients';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { computeLineTotal } from '@/lib/utils';
+import { INGREDIENT_UNITS } from '@/lib/units';
 
 export interface LineItem {
   id: string;
@@ -23,7 +24,7 @@ interface IngredientLineTableProps {
   onChange: (lines: LineItem[]) => void;
 }
 
-const UNIT_OPTIONS: Unit[] = ['KG', 'LTR', 'GM', 'ML', 'PCS'];
+const UNIT_OPTIONS: Unit[] = [...INGREDIENT_UNITS];
 
 const AI_PRICES: Record<string, number> = {
   default: 850,
@@ -50,7 +51,9 @@ function newLine(): LineItem {
 export default function IngredientLineTable({ lines, onChange }: IngredientLineTableProps) {
   const [dropdowns, setDropdowns] = useState<Record<string, string>>({});
   const [inputVals, setInputVals] = useState<Record<string, string>>({});
+  const [suggestions, setSuggestions] = useState<Record<string, Ingredient[]>>({});
   const containerRef = useRef<HTMLDivElement>(null);
+  const searchTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   const runningTotal = lines.reduce((sum, l) => sum + l.totalPrice, 0);
 
@@ -76,10 +79,32 @@ export default function IngredientLineTable({ lines, onChange }: IngredientLineT
     );
   };
 
+  const loadSuggestions = (id: string, query: string) => {
+    if (searchTimers.current[id]) clearTimeout(searchTimers.current[id]);
+
+    if (!query.trim()) {
+      setSuggestions((p) => ({ ...p, [id]: [] }));
+      return;
+    }
+
+    searchTimers.current[id] = setTimeout(async () => {
+      try {
+        const data = await fetchIngredients({ search: query, page: 1, limit: 5 });
+        setSuggestions((p) => ({
+          ...p,
+          [id]: data.ingredients.map(mapIngredientFromApi),
+        }));
+      } catch {
+        setSuggestions((p) => ({ ...p, [id]: [] }));
+      }
+    }, 300);
+  };
+
   const handleNameInput = (id: string, val: string) => {
     setInputVals((p) => ({ ...p, [id]: val }));
     setDropdowns((p) => ({ ...p, [id]: val }));
     updateLine(id, { ingredientName: val, ingredientId: '', source: 'database' });
+    loadSuggestions(id, val);
   };
 
   const handleSelectIngredient = (id: string, ing: Ingredient) => {
@@ -95,29 +120,40 @@ export default function IngredientLineTable({ lines, onChange }: IngredientLineT
   };
 
   const handleNameBlur = (id: string, name: string) => {
-    setTimeout(() => {
+    setTimeout(async () => {
       setDropdowns((p) => ({ ...p, [id]: '' }));
-      if (name.trim()) {
-        const found = MOCK_INGREDIENTS.find(
-          (i) => i.name.toLowerCase() === name.toLowerCase()
-        );
-        if (!found) {
-          const aiPrice = getAiPrice(name);
-          updateLine(id, {
-            ingredientName: name,
-            pricePerHundredKg: aiPrice,
-            source: 'ai-estimated',
-          });
-        }
-      }
-    }, 200);
-  };
+      setSuggestions((p) => ({ ...p, [id]: [] }));
 
-  const getFilteredIngredients = (search: string): Ingredient[] => {
-    if (!search.trim()) return [];
-    return MOCK_INGREDIENTS.filter((i) =>
-      i.name.toLowerCase().includes(search.toLowerCase())
-    ).slice(0, 5);
+      const trimmed = name.trim();
+      if (!trimmed) return;
+
+      const cached = (suggestions[id] ?? []).find(
+        (i) => i.name.toLowerCase() === trimmed.toLowerCase()
+      );
+      if (cached) {
+        handleSelectIngredient(id, cached);
+        return;
+      }
+
+      try {
+        const data = await fetchIngredients({ search: trimmed, page: 1, limit: 10 });
+        const found = data.ingredients
+          .map(mapIngredientFromApi)
+          .find((i) => i.name.toLowerCase() === trimmed.toLowerCase());
+        if (found) {
+          handleSelectIngredient(id, found);
+          return;
+        }
+      } catch {
+        /* fall through to AI estimate */
+      }
+
+      updateLine(id, {
+        ingredientName: trimmed,
+        pricePerHundredKg: getAiPrice(trimmed),
+        source: 'ai-estimated',
+      });
+    }, 200);
   };
 
   return (
@@ -148,8 +184,7 @@ export default function IngredientLineTable({ lines, onChange }: IngredientLineT
               </thead>
               <tbody>
                 {lines.map((line, i) => {
-                  const search = dropdowns[line.id] ?? '';
-                  const suggestions = getFilteredIngredients(search);
+                  const lineSuggestions = suggestions[line.id] ?? [];
                   const displayVal = inputVals[line.id] ?? line.ingredientName;
 
                   return (
@@ -164,9 +199,9 @@ export default function IngredientLineTable({ lines, onChange }: IngredientLineT
                           placeholder="Type ingredient..."
                           className="w-full px-2 py-1.5 text-[13px] border border-[#c3c3c3] rounded-lg focus:outline-none focus:border-[#314f2d] focus:ring-1 focus:ring-[#314f2d]/20 bg-white"
                         />
-                        {suggestions.length > 0 && (
+                        {lineSuggestions.length > 0 && (
                           <div className="absolute left-3 top-full mt-1 z-30 bg-white border border-[#c3c3c3] rounded-lg shadow-lg overflow-hidden min-w-[200px]">
-                            {suggestions.map((sug) => (
+                            {lineSuggestions.map((sug) => (
                               <button
                                 key={sug.id}
                                 type="button"

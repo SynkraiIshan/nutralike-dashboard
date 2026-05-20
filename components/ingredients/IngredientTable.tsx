@@ -15,9 +15,13 @@ interface IngredientTableProps {
   onDelete: (id: string) => void;
   onImport: () => void;
   isLoading?: boolean;
+  currentPage?: number;
+  totalPages?: number;
+  pageSize?: number;
+  onPageChange?: (page: number) => void;
 }
 
-const PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 10;
 
 export default function IngredientTable({
   ingredients,
@@ -25,12 +29,27 @@ export default function IngredientTable({
   onDelete,
   onImport,
   isLoading = false,
+  currentPage: controlledPage,
+  totalPages: controlledTotalPages,
+  pageSize = DEFAULT_PAGE_SIZE,
+  onPageChange,
 }: IngredientTableProps) {
-  const [page, setPage] = useState(1);
+  const [internalPage, setInternalPage] = useState(1);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-  const totalPages = Math.max(1, Math.ceil(ingredients.length / PAGE_SIZE));
-  const paginated = ingredients.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const isServerPaginated = controlledTotalPages !== undefined && onPageChange !== undefined;
+  const page = controlledPage ?? internalPage;
+  const totalPages = isServerPaginated
+    ? Math.max(1, controlledTotalPages)
+    : Math.max(1, Math.ceil(ingredients.length / pageSize));
+  const paginated = isServerPaginated
+    ? ingredients
+    : ingredients.slice((page - 1) * pageSize, page * pageSize);
+
+  const handlePageChange = (next: number) => {
+    if (onPageChange) onPageChange(next);
+    else setInternalPage(next);
+  };
 
   const handleDelete = (id: string, name: string) => {
     onDelete(id);
@@ -80,7 +99,7 @@ export default function IngredientTable({
                 style={{}}
               >
                 <td className="px-4 py-3 text-[#555555] text-[12px] tabular-nums">
-                  {(page - 1) * PAGE_SIZE + i + 1}
+                  {(page - 1) * pageSize + i + 1}
                 </td>
                 <td className="px-4 py-3 font-medium text-[#0a0a0a]">{ing.name}</td>
                 <td className="px-4 py-3">
@@ -145,7 +164,7 @@ export default function IngredientTable({
           </tbody>
         </table>
       </div>
-      <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+      <Pagination currentPage={page} totalPages={totalPages} onPageChange={handlePageChange} />
     </div>
   );
 }

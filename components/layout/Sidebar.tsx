@@ -109,8 +109,8 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
       {/* Logout */}
       <div className="px-2 pb-5 border-t border-white/10 pt-4">
         <button
-          onClick={() => {
-            document.cookie = 'nutralike_auth=; path=/; max-age=0; samesite=lax';
+          onClick={async () => {
+            await fetch('/api/auth/logout', { method: 'POST' });
             window.location.href = '/login';
           }}
           title={collapsed ? 'Logout' : undefined}

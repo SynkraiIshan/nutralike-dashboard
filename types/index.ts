@@ -1,4 +1,4 @@
-export type Unit = 'KG' | 'LTR' | 'GM' | 'ML' | 'PCS';
+export type Unit = 'g' | 'KG' | 'Ltr' | 'ml' | 'mg' | 'oz' | 'lb' | 'pcs';
 
 export interface Ingredient {
   id: string;
