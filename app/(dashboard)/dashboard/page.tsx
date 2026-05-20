@@ -1,15 +1,16 @@
 'use client';
-import { Package, FileText, Users, Clock } from 'lucide-react';
+import { Package, FileText, Upload, Clock } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import StatCard from '@/components/dashboard/StatCard';
 import RecentQuotations from '@/components/dashboard/RecentQuotations';
 import ActivityFeed from '@/components/dashboard/ActivityFeed';
 import { MOCK_QUOTATIONS } from '@/lib/mock-data/quotations';
 import { MOCK_INGREDIENTS } from '@/lib/mock-data/ingredients';
-import { MOCK_CLIENTS } from '@/lib/mock-data/clients';
+import { MOCK_UPLOADS } from '@/lib/mock-data/uploads';
 
 const recentQuotations = MOCK_QUOTATIONS.slice(0, 5);
 const pendingCount = MOCK_QUOTATIONS.filter((q) => q.status === 'draft').length;
+const completedUploads = MOCK_UPLOADS.filter((u) => u.status === 'completed').length;
 
 export default function DashboardPage() {
   return (
@@ -31,10 +32,10 @@ export default function DashboardPage() {
           trendType="positive"
         />
         <StatCard
-          title="Active Clients"
-          value={MOCK_CLIENTS.length}
-          icon={<Users size={18} />}
-          trend="3 new this week"
+          title="Completed Uploads"
+          value={completedUploads}
+          icon={<Upload size={18} />}
+          trend="Files processed"
           trendType="positive"
         />
         <StatCard

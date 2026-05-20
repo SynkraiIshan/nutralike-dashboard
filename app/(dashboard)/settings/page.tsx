@@ -1,14 +1,19 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Card from '@/components/ui/Card';
 import Tabs from '@/components/ui/Tabs';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
-import Toggle from '@/components/ui/Toggle';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import Badge from '@/components/ui/Badge';
-import { Settings as SettingsIcon, Users, Sliders, Plus } from 'lucide-react';
+import SystemSettingsTable from '@/components/settings/SystemSettingsTable';
+import PackagingMaterialsTable from '@/components/settings/PackagingMaterialsTable';
+import { MOCK_SYSTEM_SETTINGS } from '@/lib/mock-data/system-settings';
+import { MOCK_PACKAGING_MATERIALS } from '@/lib/mock-data/packaging-materials';
+import { SystemSetting, PackagingMaterialsData } from '@/types';
+import { Settings as SettingsIcon, Users, Sliders, Plus, UserCog, UserX } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const ADMIN_USERS = [
@@ -19,98 +24,75 @@ const ADMIN_USERS = [
 
 const CURRENCY_OPTIONS  = [{ value: 'INR', label: 'INR - Indian Rupee' }, { value: 'USD', label: 'USD - US Dollar' }];
 const DATE_FORMAT_OPT   = [{ value: 'DD-MM-YYYY', label: 'DD-MM-YYYY' }, { value: 'MM/DD/YYYY', label: 'MM/DD/YYYY' }];
-const FORMULA_TYPE_OPT  = [{ value: 'simple', label: 'Simple Markup' }, { value: 'tiered', label: 'Tiered Markup' }];
 const ROLE_OPTIONS      = [{ value: 'Admin', label: 'Admin' }, { value: 'Viewer', label: 'Viewer' }];
 
+const SETTINGS_TABS = ['pricing', 'users', 'prefs'] as const;
+
 export default function SettingsPage() {
-  const [tab, setTab] = useState('formula');
+  const searchParams = useSearchParams();
+  const [tab, setTab] = useState('pricing');
 
-  // Formula tab
-  const [markup, setMarkup]     = useState(15);
-  const [overhead, setOverhead] = useState(5);
-  const [minQuote, setMinQuote] = useState(500);
+  useEffect(() => {
+    const requested = searchParams.get('tab');
+    if (requested === 'formula') {
+      setTab('pricing');
+      return;
+    }
+    if (requested && SETTINGS_TABS.includes(requested as (typeof SETTINGS_TABS)[number])) {
+      setTab(requested);
+    }
+  }, [searchParams]);
 
-  // Prefs tab
+  const [systemSettings, setSystemSettings] = useState<SystemSetting[]>(MOCK_SYSTEM_SETTINGS);
+  const [packagingMaterials, setPackagingMaterials] =
+    useState<PackagingMaterialsData>(MOCK_PACKAGING_MATERIALS);
+
   const [currency, setCurrency]   = useState('INR');
   const [dateFormat, setDateFormat] = useState('DD-MM-YYYY');
-  const [autoSave, setAutoSave]   = useState(true);
-  const [emailNotif, setEmailNotif] = useState(true);
 
-  // Invite modal
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole]  = useState('Viewer');
 
   const TABS = [
-    { id: 'formula', label: 'Quotation Formula', icon: <Sliders size={14} /> },
+    { id: 'pricing', label: 'Pricing & Packaging', icon: <Sliders size={14} /> },
     { id: 'users',   label: 'User Management',   icon: <Users size={14} /> },
     { id: 'prefs',   label: 'System Preferences', icon: <SettingsIcon size={14} /> },
   ];
 
   return (
-    <div className="flex flex-col gap-4 max-w-3xl">
+    <div className="flex flex-col gap-4 max-w-6xl">
       <Tabs tabs={TABS} activeTab={tab} onChange={setTab} />
 
-      {/* FORMULA TAB */}
-      {tab === 'formula' && (
-        <Card>
-          <h2 className="type-h3-18 text-[#0a0a0a] mb-5">Quotation Formula Configuration</h2>
-          <div className="flex flex-col gap-5">
-            <Select
-              label="Formula Type"
-              options={FORMULA_TYPE_OPT}
-              defaultValue="simple"
-            />
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <Input
-                label="Markup Percentage (%)"
-                type="number"
-                min="0"
-                max="100"
-                step="0.5"
-                value={markup}
-                onChange={(e) => setMarkup(Number(e.target.value))}
-              />
-              <Input
-                label="Overhead (Fixed ₹)"
-                type="number"
-                min="0"
-                step="0.01"
-                value={overhead}
-                onChange={(e) => setOverhead(Number(e.target.value))}
-                leftAddon="₹"
-              />
-              <Input
-                label="Minimum Quotation (₹)"
-                type="number"
-                min="0"
-                value={minQuote}
-                onChange={(e) => setMinQuote(Number(e.target.value))}
-                leftAddon="₹"
-              />
-            </div>
-
-            {/* Live preview */}
-            <div className="bg-[#f2f6ef] rounded-xl p-4 border border-[#c3c3c3]">
-              <p className="text-[12px] font-semibold text-[#555555] uppercase tracking-widest mb-2">Formula Preview</p>
-              <p className="font-mono text-[#314f2d] text-sm font-medium">
-                Total = (Ingredient Cost × {(1 + markup / 100).toFixed(2)}) + ₹{overhead.toFixed(2)}
-              </p>
-              <p className="text-[12px] text-[#555555] mt-1">
-                Minimum quotation value: ₹{minQuote.toLocaleString('en-IN')}
+      {tab === 'pricing' && (
+        <div className="flex flex-col gap-6">
+          <Card padding={false}>
+            <div className="px-6 py-4 border-b border-[#c3c3c3]">
+              <h2 className="type-h3-18 text-[#0a0a0a]">Global pricing settings</h2>
+              <p className="text-sm text-[#555555] mt-0.5">
+                Default costs, margins, and pack defaults used in quotation calculations
               </p>
             </div>
+            <SystemSettingsTable settings={systemSettings} onChange={setSystemSettings} />
+          </Card>
 
-            <div>
-              <Button onClick={() => toast.success('Formula settings saved successfully')}>
-                Save Formula
-              </Button>
+          <Card padding={false}>
+            <div className="px-6 py-4 border-b border-[#c3c3c3]">
+              <h2 className="type-h3-18 text-[#0a0a0a]">Packaging material costs</h2>
+              <p className="text-sm text-[#555555] mt-0.5">
+                Min / max costs per item by packaging type and pack weight
+              </p>
             </div>
-          </div>
-        </Card>
+            <div className="p-4 sm:p-6">
+              <PackagingMaterialsTable
+                materials={packagingMaterials}
+                onChange={setPackagingMaterials}
+              />
+            </div>
+          </Card>
+        </div>
       )}
 
-      {/* USERS TAB */}
       {tab === 'users' && (
         <Card padding={false}>
           <div className="flex items-center justify-between px-6 py-4 border-b border-[#c3c3c3]">
@@ -144,20 +126,24 @@ export default function SettingsPage() {
                     <Badge label={u.status} variant={u.status === 'Active' ? 'success' : 'neutral'} />
                   </td>
                   <td className="px-5 py-3">
-                    <div className="flex items-center gap-2">
-                      <button
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        leftIcon={<UserCog size={13} />}
                         onClick={() => toast.success(`Role updated for ${u.name}`)}
-                        className="text-[12px] text-[#314f2d] hover:underline font-medium cursor-pointer"
                       >
                         Edit Role
-                      </button>
+                      </Button>
                       {u.status === 'Active' && (
-                        <button
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          leftIcon={<UserX size={13} />}
                           onClick={() => toast.success(`${u.name} deactivated`)}
-                          className="text-[12px] text-red-500 hover:underline font-medium cursor-pointer"
                         >
                           Deactivate
-                        </button>
+                        </Button>
                       )}
                     </div>
                   </td>
@@ -168,7 +154,6 @@ export default function SettingsPage() {
         </Card>
       )}
 
-      {/* PREFS TAB */}
       {tab === 'prefs' && (
         <Card>
           <h2 className="type-h3-18 text-[#0a0a0a] mb-5">System Preferences</h2>
@@ -187,22 +172,6 @@ export default function SettingsPage() {
                 onChange={(e) => setDateFormat(e.target.value)}
               />
             </div>
-            <div className="flex flex-col gap-4 py-2 border-t border-[#f2f6ef]">
-              <Toggle
-                label="Auto-save quotation drafts"
-                description="Automatically save in-progress quotations every 2 minutes"
-                checked={autoSave}
-                onChange={setAutoSave}
-                id="toggle-autosave"
-              />
-              <Toggle
-                label="Email notifications on new quotation"
-                description="Receive an email when a quotation is generated or sent"
-                checked={emailNotif}
-                onChange={setEmailNotif}
-                id="toggle-email"
-              />
-            </div>
             <div>
               <Button onClick={() => toast.success('Preferences saved successfully')}>
                 Save Preferences
@@ -212,7 +181,6 @@ export default function SettingsPage() {
         </Card>
       )}
 
-      {/* Invite User Modal */}
       <Modal isOpen={inviteOpen} onClose={() => setInviteOpen(false)} title="Invite User" width="sm">
         <div className="flex flex-col gap-4">
           <Input

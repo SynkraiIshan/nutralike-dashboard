@@ -1,28 +1,41 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Bot } from 'lucide-react';
+import { Bot } from 'lucide-react';
 import StepIndicator from './StepIndicator';
 import IngredientLineTable, { LineItem } from './IngredientLineTable';
 import QuotationPreview from './QuotationPreview';
 import FileUploadZone from '@/components/ui/FileUploadZone';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import Select from '@/components/ui/Select';
 import Card from '@/components/ui/Card';
 import { MOCK_QUOTATIONS } from '@/lib/mock-data/quotations';
+import {
+  PACKAGING_TYPE_OPTIONS,
+  PACKAGING_TIER_OPTIONS,
+  getPackWeightOptions,
+} from '@/lib/mock-data/packaging-materials';
+import { QuotationClientInfo, PackagingType } from '@/types';
 import toast from 'react-hot-toast';
-
-interface ClientInfo {
-  name: string;
-  email: string;
-  productName: string;
-  description: string;
-}
 
 interface FormErrors {
   name?: string;
   productName?: string;
+  packagingType?: string;
+  packWeightG?: string;
+  packagingTier?: string;
 }
+
+const EMPTY_CLIENT_INFO: QuotationClientInfo = {
+  name: '',
+  email: '',
+  productName: '',
+  description: '',
+  packWeightG: '',
+  packagingType: '',
+  packagingTier: '',
+};
 
 const MOCK_EXTRACTED_LINES: LineItem[] = [
   { id: 'ex1', ingredientId: '5',   ingredientName: 'Whey Protein Concentrate', unit: 'KG', qtyUsed: 40, pricePerHundredKg: 890,   totalPrice: 356,   source: 'database' },
@@ -39,10 +52,26 @@ interface QuotationWizardProps {
 export default function QuotationWizard({ onComplete }: QuotationWizardProps) {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [clientInfo, setClientInfo] = useState<ClientInfo>({
-    name: '', email: '', productName: '', description: '',
-  });
+  const [clientInfo, setClientInfo] = useState<QuotationClientInfo>(EMPTY_CLIENT_INFO);
   const [errors, setErrors] = useState<FormErrors>({});
+
+  const packWeightOptions = clientInfo.packagingType
+    ? getPackWeightOptions(clientInfo.packagingType as PackagingType)
+    : [];
+
+  useEffect(() => {
+    if (!clientInfo.packagingType) return;
+    const options = getPackWeightOptions(clientInfo.packagingType as PackagingType);
+    if (options.length === 0) {
+      if (clientInfo.packWeightG) {
+        setClientInfo((prev) => ({ ...prev, packWeightG: '' }));
+      }
+      return;
+    }
+    if (!options.some((o) => o.value === clientInfo.packWeightG)) {
+      setClientInfo((prev) => ({ ...prev, packWeightG: options[0].value }));
+    }
+  }, [clientInfo.packagingType, clientInfo.packWeightG]);
   const [lines, setLines] = useState<LineItem[]>([]);
   const [isExtracting, setIsExtracting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -51,10 +80,26 @@ export default function QuotationWizard({ onComplete }: QuotationWizardProps) {
 
   const validateStep1 = (): boolean => {
     const e: FormErrors = {};
-    if (!clientInfo.name.trim()) e.name = 'Client name is required';
+    if (!clientInfo.name.trim()) e.name = 'Company name is required';
     if (!clientInfo.productName.trim()) e.productName = 'Product name is required';
+    if (!clientInfo.packagingType) e.packagingType = 'Packaging type is required';
+    if (!clientInfo.packWeightG) e.packWeightG = 'Pack weight is required';
+    if (!clientInfo.packagingTier) e.packagingTier = 'Cost tier is required';
     setErrors(e);
     return Object.keys(e).length === 0;
+  };
+
+  const handlePackagingTypeChange = (type: string) => {
+    if (!type) {
+      setClientInfo((prev) => ({ ...prev, packagingType: '', packWeightG: '' }));
+      return;
+    }
+    const options = getPackWeightOptions(type as PackagingType);
+    setClientInfo((prev) => ({
+      ...prev,
+      packagingType: type as PackagingType,
+      packWeightG: options[0]?.value ?? '',
+    }));
   };
 
   const handleNext1 = () => {
@@ -87,11 +132,11 @@ export default function QuotationWizard({ onComplete }: QuotationWizardProps) {
 
       {/* STEP 1 */}
       {step === 1 && (
-        <Card className="max-w-xl mx-auto">
-          <h2 className="type-h3-18 text-[#0a0a0a] mb-5">Client & Product Information</h2>
+        <Card className="max-w-2xl mx-auto">
+          <h2 className="type-h3-18 text-[#0a0a0a] mb-5">Client, Product & Packaging</h2>
           <div className="flex flex-col gap-4">
             <Input
-              label="Client Name"
+              label="Company name"
               placeholder="e.g. Aryan Proteins Pvt. Ltd."
               value={clientInfo.name}
               onChange={(e) => setClientInfo({ ...clientInfo, name: e.target.value })}
@@ -113,6 +158,42 @@ export default function QuotationWizard({ onComplete }: QuotationWizardProps) {
               error={errors.productName}
               required
             />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1 border-t border-[#f2f6ef]">
+              <Select
+                label="Packaging type"
+                options={[{ value: '', label: 'Select type' }, ...PACKAGING_TYPE_OPTIONS]}
+                value={clientInfo.packagingType}
+                onChange={(e) => handlePackagingTypeChange(e.target.value)}
+                error={errors.packagingType}
+                required
+              />
+              <Select
+                label="Pack weight"
+                options={
+                  packWeightOptions.length > 0
+                    ? [{ value: '', label: 'Select weight' }, ...packWeightOptions]
+                    : [{ value: '', label: 'No weights available' }]
+                }
+                value={clientInfo.packWeightG}
+                onChange={(e) => setClientInfo({ ...clientInfo, packWeightG: e.target.value })}
+                error={errors.packWeightG}
+                disabled={packWeightOptions.length === 0}
+                required
+              />
+              <Select
+                label="Packaging cost tier"
+                options={[{ value: '', label: 'Select tier' }, ...PACKAGING_TIER_OPTIONS]}
+                value={clientInfo.packagingTier}
+                onChange={(e) =>
+                  setClientInfo({
+                    ...clientInfo,
+                    packagingTier: e.target.value as QuotationClientInfo['packagingTier'],
+                  })
+                }
+                error={errors.packagingTier}
+                required
+              />
+            </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-[13px] font-medium text-[#373737]">
                 Product Description

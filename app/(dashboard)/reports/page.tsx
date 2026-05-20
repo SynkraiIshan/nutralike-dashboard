@@ -1,27 +1,17 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 import Card from '@/components/ui/Card';
 import Tabs from '@/components/ui/Tabs';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { MOCK_QUOTATIONS } from '@/lib/mock-data/quotations';
-import { MOCK_INGREDIENTS } from '@/lib/mock-data/ingredients';
-import { MOCK_UPLOADS } from '@/lib/mock-data/uploads';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { BarChart2, FileText, Clock, Download } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { FileText, Clock, Eye } from 'lucide-react';
 
 const STATUS_VARIANTS: Record<string, 'success' | 'neutral' | 'info'> = {
   generated: 'success', draft: 'neutral', sent: 'info', archived: 'neutral',
 };
-
-const TOP_INGREDIENTS = [
-  { name: 'Whey Protein Concentrate', count: 12 },
-  { name: 'Maltodextrin',             count: 9  },
-  { name: 'Sugar',                    count: 7  },
-  { name: 'Stevia Leaf Extract',      count: 5  },
-  { name: 'Milk Powder',              count: 4  },
-];
 
 const PRICE_HISTORY = [
   { ingredient: 'Whey Protein Concentrate', oldPrice: 820, newPrice: 890, changedBy: 'Kunal Nagani', changedAt: '2024-05-28' },
@@ -41,7 +31,6 @@ export default function ReportsPage() {
   const TABS = [
     { id: 'history',   label: 'Quotation History', icon: <FileText size={14} /> },
     { id: 'changes',   label: 'Ingredient Changes', icon: <Clock size={14} /> },
-    { id: 'summary',   label: 'Usage Summary',      icon: <BarChart2 size={14} /> },
   ];
 
   const filteredQuotations = MOCK_QUOTATIONS.filter((q) => {
@@ -52,8 +41,6 @@ export default function ReportsPage() {
     const mTo   = !toDate   || q.createdAt <= toDate + 'T23:59:59';
     return ms && mStatus && mFrom && mTo;
   });
-
-  const completedUploads = MOCK_UPLOADS.filter((u) => u.status === 'completed').length;
 
   return (
     <div className="flex flex-col gap-4 max-w-5xl">
@@ -84,24 +71,20 @@ export default function ReportsPage() {
               className="px-3 py-2 text-sm border border-[#c3c3c3] rounded-lg bg-white text-[#373737] focus:outline-none focus:border-[#314f2d]" />
             <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)}
               className="px-3 py-2 text-sm border border-[#c3c3c3] rounded-lg bg-white text-[#373737] focus:outline-none focus:border-[#314f2d]" />
-            <Button variant="secondary" leftIcon={<Download size={14} />}
-              onClick={() => toast.success('Exporting quotations to Excel...')}>
-              Export
-            </Button>
           </div>
           <Card padding={false}>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-[#c3c3c3] bg-[#f2f6ef]">
-                    {['#', 'Client', 'Product', 'Total', 'Status', 'Date'].map((h) => (
+                    {['#', 'Client', 'Product', 'Total', 'Status', 'Date', 'Actions'].map((h) => (
                       <th key={h} className="px-4 py-3 text-left text-[12px] font-semibold text-[#555555] uppercase tracking-wide whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {filteredQuotations.length === 0 ? (
-                    <tr><td colSpan={6} className="px-4 py-12 text-center text-[#a3a29e] text-sm">No quotations match your filters.</td></tr>
+                    <tr><td colSpan={7} className="px-4 py-12 text-center text-[#a3a29e] text-sm">No quotations match your filters.</td></tr>
                   ) : filteredQuotations.map((q, i) => (
                     <tr key={q.id} className={`border-b border-[#e8ece5] ${i % 2 === 0 ? 'bg-white' : 'bg-[#f2f6ef]'} hover:bg-[#f2f6ef]`}>
                       <td className="px-4 py-3 font-mono text-[#555555] text-xs uppercase">{q.id}</td>
@@ -112,6 +95,13 @@ export default function ReportsPage() {
                         <Badge label={q.status.charAt(0).toUpperCase()+q.status.slice(1)} variant={STATUS_VARIANTS[q.status] ?? 'neutral'} />
                       </td>
                       <td className="px-4 py-3 text-[#555555] whitespace-nowrap">{formatDate(q.createdAt)}</td>
+                      <td className="px-4 py-3">
+                        <Link href={`/quotations/${q.id}`}>
+                          <Button size="sm" variant="secondary" leftIcon={<Eye size={13} />}>
+                            View
+                          </Button>
+                        </Link>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -159,54 +149,6 @@ export default function ReportsPage() {
             </table>
           </div>
         </Card>
-      )}
-
-      {/* USAGE SUMMARY */}
-      {tab === 'summary' && (
-        <div className="flex flex-col gap-6">
-          {/* Stats row */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-              { label: 'Total Quotations',     value: MOCK_QUOTATIONS.length },
-              { label: 'Total Ingredients',    value: MOCK_INGREDIENTS.length },
-              { label: 'Uploads This Month',   value: completedUploads },
-              { label: 'Most Quoted Product',  value: '-' },
-            ].map((stat) => (
-              <Card key={stat.label} className="text-center">
-                <p className="text-3xl font-bold text-[#314f2d]">{stat.value}</p>
-                <p className="text-xs text-[#555555] mt-1">{stat.label}</p>
-              </Card>
-            ))}
-          </div>
-
-          {/* Most quoted */}
-          <Card>
-            <p className="text-sm font-medium text-[#555555] mb-1">Most Quoted Product (All Time)</p>
-            <p className="type-h3-18 text-[#0a0a0a]">Whey Protein Blend - 12 times</p>
-          </Card>
-
-          {/* CSS Bar chart */}
-          <Card>
-            <h2 className="type-h3-18 text-[#0a0a0a] mb-5">Top 5 Most Used Ingredients</h2>
-            <div className="space-y-3">
-              {TOP_INGREDIENTS.map((item) => (
-                <div key={item.name} className="flex items-center gap-3">
-                  <span className="w-44 text-sm text-[#555555] text-right flex-shrink-0">{item.name}</span>
-                  <div className="flex-1 bg-[#f2f6ef] rounded-full h-6 overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-700"
-                      style={{
-                        width: `${(item.count / TOP_INGREDIENTS[0].count) * 100}%`,
-                        background: 'linear-gradient(90deg, #7c9f43, #597a3e)',
-                      }}
-                    />
-                  </div>
-                  <span className="w-6 text-sm font-semibold text-[#314f2d] flex-shrink-0">{item.count}</span>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </div>
       )}
     </div>
   );

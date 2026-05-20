@@ -35,16 +35,6 @@ export interface Quotation {
   pdfUrl?: string;
 }
 
-export interface Client {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  company?: string;
-  quotationCount: number;
-  createdAt: string;
-}
-
 export type UploadType = 'ingredient-file' | 'product-image' | 'product-doc';
 export type UploadStatus = 'processing' | 'completed' | 'failed';
 
@@ -62,6 +52,39 @@ export interface Upload {
 export interface DashboardStats {
   totalIngredients: number;
   quotationsThisMonth: number;
-  activeClients: number;
+  completedUploads: number;
   pendingQuotations: number;
+}
+
+export interface SystemSetting {
+  id: string;
+  key: string;
+  value: string;
+  description: string;
+  updatedAt: string;
+}
+
+export interface PackagingMaterialItem {
+  id: string;
+  itemName: string;
+  minCost: number;
+  maxCost: number;
+}
+
+export type PackagingType = 'jar' | 'sachet';
+export type PackagingTier = 'min' | 'max';
+
+export type PackagingMaterialsData = Record<
+  PackagingType,
+  Record<string, PackagingMaterialItem[]>
+>;
+
+export interface QuotationClientInfo {
+  name: string;
+  email: string;
+  productName: string;
+  description: string;
+  packWeightG: string;
+  packagingType: PackagingType | '';
+  packagingTier: PackagingTier | '';
 }

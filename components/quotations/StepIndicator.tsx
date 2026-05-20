@@ -5,7 +5,7 @@ interface StepIndicatorProps {
 }
 
 const STEPS = [
-  { n: 1, label: 'Client & Product Info' },
+  { n: 1, label: 'Product & Packaging' },
   { n: 2, label: 'Ingredients' },
   { n: 3, label: 'Review & Generate' },
 ];
