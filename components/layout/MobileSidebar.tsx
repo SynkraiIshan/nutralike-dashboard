@@ -87,8 +87,8 @@ export default function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
         {/* Logout */}
         <div className="px-3 pb-5 border-t border-white/10 pt-4">
           <button 
-            onClick={() => {
-              document.cookie = 'nutralike_auth=; path=/; max-age=0; samesite=lax';
+            onClick={async () => {
+              await fetch('/api/auth/logout', { method: 'POST' });
               window.location.href = '/login';
             }}
             className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-white/60 hover:text-white hover:bg-white/5 transition-all duration-150 cursor-pointer"

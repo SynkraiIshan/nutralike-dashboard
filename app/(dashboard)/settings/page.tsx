@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Card from '@/components/ui/Card';
 import Tabs from '@/components/ui/Tabs';
@@ -10,25 +10,58 @@ import Modal from '@/components/ui/Modal';
 import Badge from '@/components/ui/Badge';
 import SystemSettingsTable from '@/components/settings/SystemSettingsTable';
 import PackagingMaterialsTable from '@/components/settings/PackagingMaterialsTable';
+import { inviteEmployee } from '@/lib/api/employees';
+import { ApiError } from '@/lib/api/errors';
 import { MOCK_SYSTEM_SETTINGS } from '@/lib/mock-data/system-settings';
 import { MOCK_PACKAGING_MATERIALS } from '@/lib/mock-data/packaging-materials';
 import { SystemSetting, PackagingMaterialsData } from '@/types';
-import { Settings as SettingsIcon, Users, Sliders, Plus, UserCog, UserX } from 'lucide-react';
+import { Settings as SettingsIcon, Users, Sliders, Plus, UserCog, UserX, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const ADMIN_USERS = [
+type ManagedUser = {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  role: string;
+  status: string;
+};
+
+const INITIAL_USERS: ManagedUser[] = [
   { id: 'u1', name: 'Kunal Nagani', email: 'kunal@nutralike.com', role: 'Admin', status: 'Active' },
-  { id: 'u2', name: 'Priya Desai',  email: 'priya@nutralike.com', role: 'Viewer', status: 'Active' },
-  { id: 'u3', name: 'Ravi Kumar',   email: 'ravi@nutralike.com',  role: 'Viewer', status: 'Inactive' },
+  { id: 'u2', name: 'Priya Desai', email: 'priya@nutralike.com', role: 'Viewer', status: 'Active' },
+  { id: 'u3', name: 'Ravi Kumar', email: 'ravi@nutralike.com', role: 'Viewer', status: 'Inactive' },
 ];
 
 const CURRENCY_OPTIONS  = [{ value: 'INR', label: 'INR - Indian Rupee' }, { value: 'USD', label: 'USD - US Dollar' }];
 const DATE_FORMAT_OPT   = [{ value: 'DD-MM-YYYY', label: 'DD-MM-YYYY' }, { value: 'MM/DD/YYYY', label: 'MM/DD/YYYY' }];
-const ROLE_OPTIONS      = [{ value: 'Admin', label: 'Admin' }, { value: 'Viewer', label: 'Viewer' }];
+
+const PHONE_DIGITS = 10;
+
+function formatPhoneInput(value: string): string {
+  return value.replace(/\D/g, '').slice(0, PHONE_DIGITS);
+}
 
 const SETTINGS_TABS = ['pricing', 'users', 'prefs'] as const;
 
 export default function SettingsPage() {
+  return (
+    <Suspense fallback={<SettingsPageFallback />}>
+      <SettingsPageContent />
+    </Suspense>
+  );
+}
+
+function SettingsPageFallback() {
+  return (
+    <div className="flex flex-col gap-4 max-w-6xl animate-pulse">
+      <div className="h-10 rounded-lg bg-[#f2f6ef]" />
+      <div className="h-64 rounded-lg bg-[#f2f6ef]" />
+    </div>
+  );
+}
+
+function SettingsPageContent() {
   const searchParams = useSearchParams();
   const [tab, setTab] = useState('pricing');
 
@@ -50,9 +83,74 @@ export default function SettingsPage() {
   const [currency, setCurrency]   = useState('INR');
   const [dateFormat, setDateFormat] = useState('DD-MM-YYYY');
 
+  const [users, setUsers] = useState<ManagedUser[]>(INITIAL_USERS);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteName, setInviteName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole]  = useState('Viewer');
+  const [invitePhone, setInvitePhone] = useState('');
+  const [inviteSubmitting, setInviteSubmitting] = useState(false);
+
+  const resetInviteForm = () => {
+    setInviteName('');
+    setInviteEmail('');
+    setInvitePhone('');
+  };
+
+  const closeInviteModal = () => {
+    setInviteOpen(false);
+    resetInviteForm();
+  };
+
+  const handleInviteSubmit = async () => {
+    const name = inviteName.trim();
+    const email = inviteEmail.trim();
+    const phone = invitePhone.trim();
+
+    if (!name) {
+      toast.error('Name is required');
+      return;
+    }
+    if (!email) {
+      toast.error('Email is required');
+      return;
+    }
+    if (!phone) {
+      toast.error('Phone number is required');
+      return;
+    }
+    if (phone.length !== PHONE_DIGITS) {
+      toast.error(`Phone number must be exactly ${PHONE_DIGITS} digits`);
+      return;
+    }
+
+    setInviteSubmitting(true);
+    try {
+      const employee = await inviteEmployee({ name, email, phone });
+      setUsers((prev) => [
+        ...prev,
+        {
+          id: employee.id,
+          name: employee.name,
+          email: employee.email,
+          phone: employee.phone,
+          role: 'Employee',
+          status: employee.isActive ? 'Active' : 'Inactive',
+        },
+      ]);
+      toast.success(employee.inviterName
+        ? `${employee.name} invited successfully by ${employee.inviterName}`
+        : `${employee.name} invited successfully`);
+      closeInviteModal();
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : 'Failed to send invite. Please try again.';
+      toast.error(message);
+    } finally {
+      setInviteSubmitting(false);
+    }
+  };
 
   const TABS = [
     { id: 'pricing', label: 'Pricing & Packaging', icon: <Sliders size={14} /> },
@@ -98,7 +196,7 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between px-6 py-4 border-b border-[#c3c3c3]">
             <div>
               <h2 className="type-h3-18 text-[#0a0a0a]">User Management</h2>
-              <p className="text-sm text-[#555555] mt-0.5">{ADMIN_USERS.length} users</p>
+              <p className="text-sm text-[#555555] mt-0.5">{users.length} users</p>
             </div>
             <Button leftIcon={<Plus size={14} />} onClick={() => setInviteOpen(true)}>
               Invite User
@@ -115,9 +213,14 @@ export default function SettingsPage() {
               </tr>
             </thead>
             <tbody>
-              {ADMIN_USERS.map((u, i) => (
+              {users.map((u, i) => (
                 <tr key={u.id} className={`border-b border-[#f2f6ef] ${i % 2 === 0 ? 'bg-white' : 'bg-[#f2f6ef]/40'}`}>
-                  <td className="px-5 py-3 font-medium text-[#0a0a0a]">{u.name}</td>
+                  <td className="px-5 py-3 font-medium text-[#0a0a0a]">
+                    <div>{u.name}</div>
+                    {u.phone && (
+                      <div className="text-xs text-[#555555] mt-0.5">{u.phone}</div>
+                    )}
+                  </td>
                   <td className="px-5 py-3 text-[#373737]">{u.email}</td>
                   <td className="px-5 py-3">
                     <Badge label={u.role} variant={u.role === 'Admin' ? 'info' : 'neutral'} />
@@ -181,8 +284,17 @@ export default function SettingsPage() {
         </Card>
       )}
 
-      <Modal isOpen={inviteOpen} onClose={() => setInviteOpen(false)} title="Invite User" width="sm">
+      <Modal isOpen={inviteOpen} onClose={closeInviteModal} title="Invite User" width="sm">
         <div className="flex flex-col gap-4">
+          <Input
+            label="Full Name"
+            type="text"
+            placeholder="Neel Sharma"
+            value={inviteName}
+            onChange={(e) => setInviteName(e.target.value)}
+            required
+            disabled={inviteSubmitting}
+          />
           <Input
             label="Email Address"
             type="email"
@@ -190,22 +302,33 @@ export default function SettingsPage() {
             value={inviteEmail}
             onChange={(e) => setInviteEmail(e.target.value)}
             required
+            disabled={inviteSubmitting}
           />
-          <Select
-            label="Role"
-            options={ROLE_OPTIONS}
-            value={inviteRole}
-            onChange={(e) => setInviteRole(e.target.value)}
+          <Input
+            label="Phone Number"
+            type="tel"
+            inputMode="numeric"
+            autoComplete="tel"
+            placeholder="9999999999"
+            value={invitePhone}
+            onChange={(e) => setInvitePhone(formatPhoneInput(e.target.value))}
+            maxLength={PHONE_DIGITS}
+            required
+            disabled={inviteSubmitting}
           />
           <div className="flex items-center gap-3 justify-end pt-2">
-            <Button variant="secondary" onClick={() => setInviteOpen(false)}>Cancel</Button>
-            <Button onClick={() => {
-              if (!inviteEmail) { toast.error('Email is required'); return; }
-              toast.success(`Invitation sent to ${inviteEmail}`);
-              setInviteOpen(false);
-              setInviteEmail('');
-            }}>
-              Send Invite
+            <Button variant="secondary" onClick={closeInviteModal} disabled={inviteSubmitting}>
+              Cancel
+            </Button>
+            <Button onClick={handleInviteSubmit} disabled={inviteSubmitting}>
+              {inviteSubmitting ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  Sending…
+                </>
+              ) : (
+                'Send Invite'
+              )}
             </Button>
           </div>
         </div>

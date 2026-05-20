@@ -5,21 +5,16 @@ import Modal from '@/components/ui/Modal';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import Button from '@/components/ui/Button';
+import { ApiError } from '@/lib/api/errors';
+import { createIngredient, mapIngredientFromApi } from '@/lib/api/ingredients';
+import { INGREDIENT_UNIT_OPTIONS } from '@/lib/units';
 import toast from 'react-hot-toast';
-
-const UNIT_OPTIONS = [
-  { value: 'KG', label: 'KG - Kilogram' },
-  { value: 'LTR', label: 'LTR - Litre' },
-  { value: 'GM', label: 'GM - Gram' },
-  { value: 'ML', label: 'ML - Millilitre' },
-  { value: 'PCS', label: 'PCS - Pieces' },
-];
 
 interface IngredientModalProps {
   isOpen: boolean;
   onClose: () => void;
   ingredient?: Ingredient | null;
-  onSave: (ingredient: Ingredient) => void;
+  onSave: () => void;
 }
 
 interface FormState {
@@ -69,22 +64,43 @@ export default function IngredientModal({
     return Object.keys(e).length === 0;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validate()) return;
     setSaving(true);
-    setTimeout(() => {
-      const saved: Ingredient = {
-        id: ingredient?.id ?? `ing-${Date.now()}`,
+
+    try {
+      if (isEdit && ingredient) {
+        const saved: Ingredient = {
+          ...ingredient,
+          name: form.name.trim(),
+          unit: form.unit,
+          pricePerHundredKg: Number(form.pricePerHundredKg),
+          lastUpdated: new Date().toISOString(),
+        };
+        onSave();
+        toast.success(`"${saved.name}" updated successfully`);
+        onClose();
+        return;
+      }
+
+      const { data: created, message } = await createIngredient({
         name: form.name.trim(),
         unit: form.unit,
-        pricePerHundredKg: Number(form.pricePerHundredKg),
-        lastUpdated: new Date().toISOString().split('T')[0],
-      };
-      onSave(saved);
-      setSaving(false);
+        pricePerUnit: Number(form.pricePerHundredKg),
+      });
+      const saved = mapIngredientFromApi(created);
+      onSave();
+      toast.success(message ?? `"${saved.name}" added successfully`);
       onClose();
-      toast.success(`"${saved.name}" ${isEdit ? 'updated' : 'added'} successfully`);
-    }, 500);
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : 'Failed to add ingredient. Please try again.';
+      toast.error(message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -105,7 +121,7 @@ export default function IngredientModal({
         />
         <Select
           label="Unit"
-          options={UNIT_OPTIONS}
+          options={INGREDIENT_UNIT_OPTIONS}
           value={form.unit}
           onChange={(e) => setForm({ ...form, unit: e.target.value as Unit })}
           required

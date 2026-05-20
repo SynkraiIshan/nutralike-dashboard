@@ -2,49 +2,108 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 import { 
-  Mail, Lock, Eye, EyeOff, Loader2, ShieldCheck, Bot, Check, Info, ArrowRight, ShieldAlert, FileText 
+  Mail, Lock, Eye, EyeOff, Loader2, ShieldCheck, Bot, Check, ArrowRight, ShieldAlert, FileText, ArrowLeft 
 } from 'lucide-react';
 
+type LoginView = 'login' | 'forgot';
+
 export default function LoginPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState('admin@gmail.com');
-  const [password, setPassword] = useState('admin123');
+  const [view, setView] = useState<LoginView>('login');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [forgotEmail, setForgotEmail] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  const [copied, setCopied] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const openForgotPassword = () => {
+    setError('');
+    setForgotEmail(email.trim());
+    setView('forgot');
+  };
+
+  const backToLogin = () => {
+    setView('login');
+    setForgotLoading(false);
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = forgotEmail.trim();
+
+    if (!trimmed) {
+      toast.error('Email is required');
+      return;
+    }
+
+    setForgotLoading(true);
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: trimmed }),
+      });
+
+      const data = (await res.json()) as {
+        success?: boolean;
+        message?: string;
+      };
+
+      if (!res.ok || !data.success) {
+        toast.error(data.message ?? 'Unable to process request. Please try again.');
+        return;
+      }
+
+      toast.success(
+        data.message ?? 'If this email exists, reset link has been sent'
+      );
+      setEmail(trimmed);
+      backToLogin();
+    } catch {
+      toast.error('Unable to connect. Please try again.');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
-    // Simulate validation & network delay
-    setTimeout(() => {
-      if (email.trim() === 'admin@gmail.com' && password === 'admin123') {
-        setSuccess(true);
-        // Calculate max-age: 7 days if rememberMe is checked, else 1 day
-        const maxAge = rememberMe ? 7 * 24 * 60 * 60 : 24 * 60 * 60;
-        document.cookie = `nutralike_auth=authenticated; path=/; max-age=${maxAge}; samesite=lax`;
-        
-        // Redirect to dashboard
-        window.location.href = '/dashboard';
-      } else {
-        setIsLoading(false);
-        setError('Invalid credentials. Please use admin@gmail.com and admin123');
-      }
-    }, 1000);
-  };
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+          rememberMe,
+        }),
+      });
 
-  const copyDemoCreds = () => {
-    setEmail('admin@gmail.com');
-    setPassword('admin123');
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+      const data = (await res.json()) as {
+        success?: boolean;
+        message?: string;
+      };
+
+      if (!res.ok || !data.success) {
+        setError(data.message ?? 'Invalid email or password');
+        setIsLoading(false);
+        return;
+      }
+
+      setSuccess(true);
+      window.location.href = '/dashboard';
+    } catch {
+      setError('Unable to connect. Please try again.');
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -150,9 +209,13 @@ export default function LoginPage() {
 
           {/* Title & Subtitle */}
           <div className="space-y-1 mb-6">
-            <h2 className="text-2xl sm:text-3xl font-bold text-[#0a0a0a] tracking-tight">Welcome Back</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-[#0a0a0a] tracking-tight">
+              {view === 'login' ? 'Welcome Back' : 'Reset Password'}
+            </h2>
             <p className="text-xs sm:text-sm text-[#555555]">
-              Please sign in with your administrator credentials.
+              {view === 'login'
+                ? 'Please sign in with your administrator credentials.'
+                : 'Enter your email and we will send a reset link if the account exists.'}
             </p>
           </div>
           
@@ -173,7 +236,56 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Main Login Form */}
+          {view === 'forgot' ? (
+            <form onSubmit={handleForgotPassword} className="space-y-5">
+              <div className="space-y-1.5">
+                <label className="block text-xs sm:text-sm font-semibold text-[#373737]">
+                  Email Address
+                </label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#a3a29e] group-focus-within:text-[#314f2d] transition-colors">
+                    <Mail size={18} />
+                  </div>
+                  <input
+                    type="email"
+                    required
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    placeholder="you@company.com"
+                    disabled={forgotLoading}
+                    className="w-full pl-10 pr-4 py-3 bg-[#fbfdfb] border border-[#c3c3c3] rounded-xl text-xs sm:text-sm text-[#0a0a0a] placeholder:text-[#a3a29e] focus:outline-none focus:border-[#314f2d] focus:ring-4 focus:ring-[#314f2d]/10 transition-all font-medium disabled:opacity-60"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={forgotLoading}
+                className="w-full py-3.5 rounded-xl text-white font-bold text-sm sm:text-base shadow-xl hover:shadow-2xl active:scale-[0.99] transition-all disabled:opacity-80 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+                style={{ background: 'linear-gradient(90deg, #7c9f43 0%, #597a3e 100%)' }}
+              >
+                {forgotLoading ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin text-white" />
+                    <span>Sending…</span>
+                  </>
+                ) : (
+                  <span>Send Reset Link</span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={backToLogin}
+                disabled={forgotLoading}
+                className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-[#7c9f43] hover:text-[#597a3e] transition-colors cursor-pointer disabled:opacity-60"
+              >
+                <ArrowLeft size={16} />
+                Back to Sign In
+              </button>
+            </form>
+          ) : (
+          /* Main Login Form */
           <form onSubmit={handleLogin} className="space-y-5">
             
             {/* Email Field */}
@@ -190,7 +302,7 @@ export default function LoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@gmail.com"
+                  placeholder="you@company.com"
                   className="w-full pl-10 pr-4 py-3 bg-[#fbfdfb] border border-[#c3c3c3] rounded-xl text-xs sm:text-sm text-[#0a0a0a] placeholder:text-[#a3a29e] focus:outline-none focus:border-[#314f2d] focus:ring-4 focus:ring-[#314f2d]/10 transition-all font-medium"
                 />
               </div>
@@ -202,10 +314,13 @@ export default function LoginPage() {
                 <label className="block text-xs sm:text-sm font-semibold text-[#373737]">
                   Password
                 </label>
-                <a href="#forgot" onClick={(e) => { e.preventDefault(); alert('Demo Mode: Please use password "admin123"'); }} 
-                   className="text-xs font-semibold text-[#7c9f43] hover:text-[#597a3e] hover:underline transition-colors cursor-pointer">
+                <button
+                  type="button"
+                  onClick={openForgotPassword}
+                  className="text-xs font-semibold text-[#7c9f43] hover:text-[#597a3e] hover:underline transition-colors cursor-pointer"
+                >
                   Forgot Password?
-                </a>
+                </button>
               </div>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#a3a29e] group-focus-within:text-[#314f2d] transition-colors">
@@ -271,6 +386,7 @@ export default function LoginPage() {
             </button>
 
           </form>
+          )}
 
           {/* Secure System Badge */}
           <div className="mt-6 pt-5 border-t border-[#f0f4ef] flex items-center justify-center gap-2 text-[11px] sm:text-xs text-[#888888] font-medium">
