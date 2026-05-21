@@ -1,25 +1,14 @@
 import { LineItem } from './IngredientLineTable';
-import { computeQuotationTotal } from '@/lib/utils';
-import { parsePackWeightGrams } from '@/lib/mock-data/packaging-materials';
+import { parsePackWeightGrams } from '@/lib/packaging/constants';
 import { QuotationClientInfo } from '@/types';
 import { Bot } from 'lucide-react';
 
 interface QuotationPreviewProps {
   clientInfo: QuotationClientInfo;
   lines: LineItem[];
-  markup?: number;
-  overhead?: number;
 }
 
-export default function QuotationPreview({
-  clientInfo,
-  lines,
-  markup = 15,
-  overhead = 5,
-}: QuotationPreviewProps) {
-  const ingredientTotal = lines.reduce((s, l) => s + l.totalPrice, 0);
-  const markupAmt = ingredientTotal * (markup / 100);
-  const total = computeQuotationTotal(ingredientTotal, markup, overhead);
+export default function QuotationPreview({ clientInfo, lines }: QuotationPreviewProps) {
   const aiCount = lines.filter((l) => l.source === 'ai-estimated').length;
   const today = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 
@@ -66,7 +55,7 @@ export default function QuotationPreview({
       </div>
 
       {/* Ingredient table */}
-      <div className="px-6 pt-5">
+      <div className="px-6 pt-5 pb-5">
         <p className="text-[12px] font-semibold text-[#555555] uppercase tracking-widest mb-3">Ingredient Breakdown</p>
         {lines.length === 0 ? (
           <p className="text-sm text-[#a3a29e] py-4 text-center">No ingredients added yet.</p>
@@ -74,7 +63,7 @@ export default function QuotationPreview({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[#c3c3c3]">
-                {['S.No', 'Ingredient', 'Unit', 'Qty', '₹/100KG', 'Total'].map((h) => (
+                {['S.No', 'Ingredient', 'Unit', 'Qty', '₹/100KG'].map((h) => (
                   <th key={h} className="py-2 pr-4 text-left text-[11px] font-semibold text-[#555555] uppercase">
                     {h}
                   </th>
@@ -96,45 +85,14 @@ export default function QuotationPreview({
                   <td className="py-2 pr-4 font-mono text-[#373737] tabular-nums">
                     ₹ {line.pricePerHundredKg.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </td>
-                  <td className="py-2 font-mono font-medium text-[#0a0a0a] tabular-nums">
-                    ₹ {line.totalPrice.toFixed(2)}
-                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
-      </div>
-
-      {/* Formula breakdown */}
-      <div className="px-6 py-5 mt-2">
-        <div className="bg-[#f2f6ef] rounded-xl p-4 space-y-2">
-          <p className="text-[12px] font-semibold text-[#555555] uppercase tracking-widest mb-3">Formula Applied</p>
-          <p className="text-[12px] text-[#555555] font-mono mb-3">
-            Total = (Ingredient Cost × {(1 + markup / 100).toFixed(2)}) + ₹{overhead} Overhead
-          </p>
-          <div className="space-y-1.5 text-sm">
-            <div className="flex justify-between">
-              <span className="text-[#555555]">Ingredient Subtotal</span>
-              <span className="font-mono text-[#373737]">₹ {ingredientTotal.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-[#555555]">Markup ({markup}%)</span>
-              <span className="font-mono text-[#373737]">₹ {markupAmt.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-[#555555]">Overhead</span>
-              <span className="font-mono text-[#373737]">₹ {overhead.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between pt-2 border-t border-[#c3c3c3] font-semibold text-[#0a0a0a]">
-              <span>Total</span>
-              <span className="font-mono text-lg">₹ {total.toFixed(2)}</span>
-            </div>
-          </div>
-        </div>
 
         {aiCount > 0 && (
-          <div className="mt-3 flex items-start gap-2 bg-[#7c9f43]/10 border border-[#7c9f43]/30 rounded-lg px-3 py-2">
+          <div className="mt-4 mb-5 flex items-start gap-2 bg-[#7c9f43]/10 border border-[#7c9f43]/30 rounded-lg px-3 py-2">
             <Bot size={14} className="text-[#7c9f43] mt-0.5 flex-shrink-0" />
             <p className="text-[12px] text-[#597a3e]">
               {aiCount} ingredient price{aiCount > 1 ? 's' : ''} estimated by AI based on market data.

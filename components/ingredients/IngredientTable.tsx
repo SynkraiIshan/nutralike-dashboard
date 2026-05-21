@@ -6,13 +6,15 @@ import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Pagination from '@/components/ui/Pagination';
 import Skeleton from '@/components/ui/Skeleton';
+import { ApiError } from '@/lib/api/errors';
+import { deleteIngredient } from '@/lib/api/ingredients';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
 interface IngredientTableProps {
   ingredients: Ingredient[];
   onEdit: (ingredient: Ingredient) => void;
-  onDelete: (id: string) => void;
+  onDelete: () => void;
   onImport: () => void;
   isLoading?: boolean;
   currentPage?: number;
@@ -36,6 +38,7 @@ export default function IngredientTable({
 }: IngredientTableProps) {
   const [internalPage, setInternalPage] = useState(1);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const isServerPaginated = controlledTotalPages !== undefined && onPageChange !== undefined;
   const page = controlledPage ?? internalPage;
@@ -51,10 +54,22 @@ export default function IngredientTable({
     else setInternalPage(next);
   };
 
-  const handleDelete = (id: string, name: string) => {
-    onDelete(id);
-    setDeleteConfirmId(null);
-    toast.success(`"${name}" deleted successfully`);
+  const handleDelete = async (id: string, name: string) => {
+    setDeletingId(id);
+    try {
+      const { message } = await deleteIngredient(id);
+      setDeleteConfirmId(null);
+      onDelete();
+      toast.success(message ?? `"${name}" deleted successfully`);
+    } catch (error) {
+      const msg =
+        error instanceof ApiError
+          ? error.message
+          : 'Failed to delete ingredient. Please try again.';
+      toast.error(msg);
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   if (isLoading) return <Skeleton rows={10} />;
@@ -143,13 +158,16 @@ export default function IngredientTable({
                               size="sm"
                               variant="secondary"
                               onClick={() => setDeleteConfirmId(null)}
+                              disabled={deletingId === ing.id}
                             >
                               Cancel
                             </Button>
                             <Button
                               size="sm"
                               variant="danger"
-                              onClick={() => handleDelete(ing.id, ing.name)}
+                              onClick={() => void handleDelete(ing.id, ing.name)}
+                              loading={deletingId === ing.id}
+                              disabled={deletingId === ing.id}
                             >
                               Delete
                             </Button>

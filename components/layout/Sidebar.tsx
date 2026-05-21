@@ -1,7 +1,9 @@
 'use client';
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { performLogout } from '@/lib/api/auth';
 import {
   LayoutDashboard, Package, FileText, Upload,
   Settings, BarChart2, LogOut,
@@ -23,6 +25,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
+  const [loggingOut, setLoggingOut] = useState(false);
   const pathname = usePathname();
 
   return (
@@ -109,13 +112,15 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
       {/* Logout */}
       <div className="px-2 pb-5 border-t border-white/10 pt-4">
         <button
-          onClick={async () => {
-            await fetch('/api/auth/logout', { method: 'POST' });
-            window.location.href = '/login';
+          type="button"
+          disabled={loggingOut}
+          onClick={() => {
+            setLoggingOut(true);
+            void performLogout();
           }}
           title={collapsed ? 'Logout' : undefined}
           className={[
-            'flex items-center w-full rounded-lg text-white/60 hover:text-white hover:bg-white/5 transition-all duration-150 cursor-pointer',
+            'flex items-center w-full rounded-lg text-white/60 hover:text-white hover:bg-white/5 transition-all duration-150 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed',
             collapsed ? 'justify-center px-0 py-2.5' : 'gap-3 px-3 py-2.5',
           ].join(' ')}
         >

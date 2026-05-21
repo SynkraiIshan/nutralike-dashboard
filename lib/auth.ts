@@ -1,5 +1,8 @@
 export const AUTH_TOKEN_COOKIE = 'nutralike_token';
 
+/** Non-httpOnly cookie for displaying name/role in the UI (set at login). */
+export const AUTH_USER_COOKIE = 'nutralike_user';
+
 type JwtPayload = { exp?: number };
 
 function decodeJwtPayload(token: string): JwtPayload | null {

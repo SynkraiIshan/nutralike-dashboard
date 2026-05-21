@@ -12,6 +12,8 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   options: SelectOption[];
   error?: string;
   placeholder?: string;
+  /** 'inline' places label beside the select on one line */
+  labelPosition?: 'top' | 'inline';
 }
 
 export default function Select({
@@ -19,21 +21,33 @@ export default function Select({
   options,
   error,
   placeholder,
+  labelPosition = 'top',
   className,
   id,
   ...props
 }: SelectProps) {
   const selectId = id ?? label?.toLowerCase().replace(/\s+/g, '-');
+  const isInline = labelPosition === 'inline';
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div
+      className={cn(
+        isInline ? 'flex flex-row items-center gap-2.5 min-w-0' : 'flex flex-col gap-1.5'
+      )}
+    >
       {label && (
-        <label htmlFor={selectId} className="text-[13px] font-medium text-[#373737]">
+        <label
+          htmlFor={selectId}
+          className={cn(
+            'text-[13px] font-medium text-[#373737]',
+            isInline && 'shrink-0 whitespace-nowrap'
+          )}
+        >
           {label}
           {props.required && <span className="text-red-500 ml-0.5">*</span>}
         </label>
       )}
-      <div className="relative">
+      <div className={cn('relative', isInline && 'flex-1 min-w-[10rem]')}>
         <select
           id={selectId}
           className={cn(

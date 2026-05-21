@@ -35,18 +35,46 @@ export interface Quotation {
   pdfUrl?: string;
 }
 
-export type UploadType = 'ingredient-file' | 'product-image' | 'product-doc';
-export type UploadStatus = 'processing' | 'completed' | 'failed';
+export type UploadHistoryStatus = 'processing' | 'completed' | 'failed';
 
-export interface Upload {
+export type IngredientChangeType = 'created' | 'updated' | 'deleted' | string;
+
+export interface ReportIngredientChangeRecord {
+  id: string;
+  ingredientName: string;
+  oldPrice: number | null;
+  newPrice: number | null;
+  changePercent: number | null;
+  changeType: IngredientChangeType;
+  changedByName: string | null;
+  changedByEmail: string;
+  createdAt: string;
+}
+
+export interface ReportQuotationRecord {
+  id: string;
+  quotationNumber: string;
+  clientName: string;
+  productName: string;
+  totalPrice: number;
+  packWeightG: number;
+  createdAt: string;
+  userName: string | null;
+  userEmail: string;
+}
+
+export interface UploadHistoryRecord {
   id: string;
   fileName: string;
   fileType: string;
-  uploadType: UploadType;
-  status: UploadStatus;
-  uploadedAt: string;
-  processedRows?: number;
-  linkedQuotationId?: string;
+  uploadType: string;
+  status: UploadHistoryStatus;
+  rowsAffected: number | null;
+  errorMessage: string | null;
+  driveViewLink: string | null;
+  uploadedByName: string | null;
+  uploadedByEmail: string;
+  createdAt: string;
 }
 
 export interface DashboardStats {

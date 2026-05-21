@@ -1,5 +1,6 @@
 'use client';
-import { use } from 'react';
+
+import { use, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Download, Share2, Bot } from 'lucide-react';
 import { MOCK_QUOTATIONS } from '@/lib/mock-data/quotations';
@@ -7,38 +8,139 @@ import { Quotation } from '@/types';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
+import GeneratedQuotationBreakdown from '@/components/quotations/GeneratedQuotationBreakdown';
+import { ApiError } from '@/lib/api/errors';
+import {
+  downloadQuotationPdf,
+  openQuotationPdfInNewTab,
+  verifyQuotationPdfAvailable,
+} from '@/lib/api/quotations';
+import type { GeneratedQuotation } from '@/lib/api/types';
+import { getStoredQuotation } from '@/lib/quotations/quotation-storage';
 import { formatCurrency, formatDate, computeQuotationTotal } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
 const STATUS_VARIANTS: Record<string, 'success' | 'neutral' | 'info' | 'warning' | 'danger'> = {
-  generated: 'success', draft: 'neutral', sent: 'info', archived: 'neutral',
+  generated: 'success',
+  draft: 'neutral',
+  sent: 'info',
+  archived: 'neutral',
 };
 
 const MARKUP = 15;
 const OVERHEAD = 5;
 
+function isLikelyApiQuotationId(id: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+}
+
 export default function QuotationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const quotation: Quotation | undefined = MOCK_QUOTATIONS.find((q) => q.id === id);
+  const [storedQuotation, setStoredQuotation] = useState<GeneratedQuotation | null>(null);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 
-  if (!quotation) {
+  useEffect(() => {
+    setStoredQuotation(getStoredQuotation(id));
+  }, [id]);
+
+  const mockQuotation: Quotation | undefined = MOCK_QUOTATIONS.find((q) => q.id === id);
+
+  const pdfFilename = storedQuotation?.quotationNumber
+    ? `${storedQuotation.quotationNumber}.pdf`
+    : `quotation-${id}.pdf`;
+
+  const handleDownloadPdf = useCallback(() => {
+    setIsDownloadingPdf(true);
+    void (async () => {
+      try {
+        await verifyQuotationPdfAvailable(id);
+        downloadQuotationPdf(id, { filename: pdfFilename });
+        toast.success('PDF download started');
+      } catch (error) {
+        const msg =
+          error instanceof ApiError
+            ? error.message
+            : 'Failed to download PDF. Please try again.';
+        toast.error(msg);
+      } finally {
+        setIsDownloadingPdf(false);
+      }
+    })();
+  }, [id, pdfFilename]);
+
+  const handleViewPdf = useCallback(() => {
+    openQuotationPdfInNewTab(id);
+  }, [id]);
+
+  if (storedQuotation) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 text-center">
-        <p className="type-h3 text-[#0a0a0a] mb-2">Quotation Not Found</p>
-        <p className="text-sm text-[#555555] mb-4">No quotation with ID &ldquo;{id}&rdquo; exists.</p>
-        <Link href="/quotations"><Button variant="secondary">← Back to Quotations</Button></Link>
+      <div className="flex flex-col gap-5 max-w-4xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <Link href="/quotations">
+            <Button variant="ghost" leftIcon={<ArrowLeft size={15} />}>
+              Back to Quotations
+            </Button>
+          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="secondary"
+              leftIcon={<Share2 size={15} />}
+              onClick={() => toast.success('Share link copied to clipboard')}
+            >
+              Share Link
+            </Button>
+            <Button variant="secondary" onClick={handleViewPdf}>
+              View PDF
+            </Button>
+            <Button
+              leftIcon={<Download size={15} />}
+              loading={isDownloadingPdf}
+              onClick={() => void handleDownloadPdf()}
+            >
+              Download PDF
+            </Button>
+          </div>
+        </div>
+
+        <Card padding={false} className="overflow-hidden">
+          <GeneratedQuotationBreakdown quotation={storedQuotation} />
+        </Card>
       </div>
     );
   }
 
-  const ingredientTotal = quotation.ingredients.reduce((s, l) => s + l.totalPrice, 0);
+  if (!mockQuotation) {
+    const canTryPdf = isLikelyApiQuotationId(id);
+
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center max-w-md mx-auto">
+        <p className="type-h3 text-[#0a0a0a] mb-2">Quotation Not Found</p>
+        <p className="text-sm text-[#555555] mb-4">
+          {canTryPdf
+            ? 'This quotation is not cached in your browser. You can still try downloading the PDF if it was generated on the server.'
+            : `No quotation with ID "${id}" exists.`}
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <Link href="/quotations">
+            <Button variant="secondary">← Back to Quotations</Button>
+          </Link>
+          {canTryPdf && (
+            <Button loading={isDownloadingPdf} onClick={() => void handleDownloadPdf()}>
+              Download PDF
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  const ingredientTotal = mockQuotation.ingredients.reduce((s, l) => s + l.totalPrice, 0);
   const markupAmt = ingredientTotal * (MARKUP / 100);
   const total = computeQuotationTotal(ingredientTotal, MARKUP, OVERHEAD);
-  const aiCount = quotation.ingredients.filter((i) => i.source === 'ai-estimated').length;
+  const aiCount = mockQuotation.ingredients.filter((i) => i.source === 'ai-estimated').length;
 
   return (
     <div className="flex flex-col gap-5 max-w-4xl">
-      {/* Header row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <Link href="/quotations">
           <Button variant="ghost" leftIcon={<ArrowLeft size={15} />}>Back to Quotations</Button>
@@ -48,54 +150,54 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
             onClick={() => toast.success('Share link copied to clipboard')}>
             Share Link
           </Button>
-          <Button leftIcon={<Download size={15} />}
-            onClick={() => toast.success(`Quotation ${quotation.id.toUpperCase()} PDF downloaded`)}>
+          <Button
+            leftIcon={<Download size={15} />}
+            loading={isDownloadingPdf}
+            onClick={() => void handleDownloadPdf()}
+          >
             Download PDF
           </Button>
         </div>
       </div>
 
-      {/* Main card */}
       <Card padding={false} className="overflow-hidden">
-        {/* Quotation header */}
         <div className="px-6 py-5" style={{ background: 'linear-gradient(135deg, #314f2d, #3c5d39)' }}>
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <p className="text-white/70 text-[12px] uppercase tracking-widest font-medium">
-                  Quotation #{quotation.id.toUpperCase()}
+                  Quotation #{mockQuotation.id.toUpperCase()}
                 </p>
                 <Badge
-                  label={quotation.status.charAt(0).toUpperCase() + quotation.status.slice(1)}
-                  variant={STATUS_VARIANTS[quotation.status]}
+                  label={mockQuotation.status.charAt(0).toUpperCase() + mockQuotation.status.slice(1)}
+                  variant={STATUS_VARIANTS[mockQuotation.status]}
                 />
               </div>
-              <p className="type-h3-18 text-white">{quotation.productName}</p>
+              <p className="type-h3-18 text-white">{mockQuotation.productName}</p>
             </div>
             <div className="text-right flex-shrink-0">
               <p className="text-white/60 text-[11px] uppercase">Created</p>
-              <p className="text-white text-sm font-medium">{formatDate(quotation.createdAt)}</p>
+              <p className="text-white text-sm font-medium">{formatDate(mockQuotation.createdAt)}</p>
             </div>
           </div>
           <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
             <div>
               <p className="text-white/60 text-[11px] uppercase">Client</p>
-              <p className="text-white text-sm font-medium">{quotation.clientName}</p>
+              <p className="text-white text-sm font-medium">{mockQuotation.clientName}</p>
             </div>
             <div>
               <p className="text-white/60 text-[11px] uppercase">Email</p>
-              <p className="text-white text-sm">{quotation.clientEmail}</p>
+              <p className="text-white text-sm">{mockQuotation.clientEmail}</p>
             </div>
-            {quotation.productDescription && (
+            {mockQuotation.productDescription && (
               <div className="col-span-2 sm:col-span-1">
                 <p className="text-white/60 text-[11px] uppercase">Description</p>
-                <p className="text-white text-sm leading-snug">{quotation.productDescription}</p>
+                <p className="text-white text-sm leading-snug">{mockQuotation.productDescription}</p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Ingredient breakdown */}
         <div className="px-6 pt-5 pb-1">
           <p className="text-[12px] font-semibold text-[#555555] uppercase tracking-widest mb-4">
             Ingredient Breakdown
@@ -112,7 +214,7 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
                 </tr>
               </thead>
               <tbody>
-                {quotation.ingredients.map((line, i) => (
+                {mockQuotation.ingredients.map((line, i) => (
                   <tr key={`${line.ingredientId}-${i}`} className="border-b border-[#f2f6ef]">
                     <td className="py-3 pr-4 text-[#555555] text-[12px]">{i + 1}</td>
                     <td className="py-3 pr-4 font-medium text-[#0a0a0a] flex items-center gap-1.5">
@@ -140,7 +242,6 @@ export default function QuotationDetailPage({ params }: { params: Promise<{ id: 
           </div>
         </div>
 
-        {/* Formula breakdown */}
         <div className="px-6 py-5">
           <div className="bg-[#f2f6ef] rounded-xl p-4">
             <p className="text-[12px] font-semibold text-[#555555] uppercase tracking-widest mb-3">Formula Applied</p>

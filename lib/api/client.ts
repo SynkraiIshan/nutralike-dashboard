@@ -101,3 +101,83 @@ export async function apiPost<T>(
 
   return { data: parsed as T };
 }
+
+export async function apiPut<T>(
+  path: string,
+  body: unknown
+): Promise<{ data: T; message?: string }> {
+  const response = await fetch(buildApiUrl(path), {
+    method: 'PUT',
+    headers: {
+      ...getDefaultHeaders(),
+      ...getAuthHeaders(),
+    },
+    credentials: 'include',
+    body: JSON.stringify(body),
+  });
+
+  const parsed = await parseJson(response);
+
+  if (!response.ok) {
+    const message =
+      parsed && typeof parsed === 'object' && 'message' in parsed
+        ? String((parsed as ApiErrorBody).message)
+        : `Request failed (${response.status})`;
+    throw new ApiError(message, {
+      status: response.status,
+      body: parsed as ApiErrorBody,
+    });
+  }
+
+  if (parsed && typeof parsed === 'object' && 'success' in parsed) {
+    const envelope = parsed as ApiResponse<T>;
+    if (!envelope.success) {
+      throw new ApiError(envelope.message ?? 'Request was not successful', {
+        status: response.status,
+        body: parsed as ApiErrorBody,
+      });
+    }
+    return { data: envelope.data, message: envelope.message };
+  }
+
+  return { data: parsed as T };
+}
+
+export async function apiDelete<T>(
+  path: string
+): Promise<{ data: T; message?: string }> {
+  const response = await fetch(buildApiUrl(path), {
+    method: 'DELETE',
+    headers: {
+      ...getDefaultHeaders(),
+      ...getAuthHeaders(),
+    },
+    credentials: 'include',
+  });
+
+  const parsed = await parseJson(response);
+
+  if (!response.ok) {
+    const message =
+      parsed && typeof parsed === 'object' && 'message' in parsed
+        ? String((parsed as ApiErrorBody).message)
+        : `Request failed (${response.status})`;
+    throw new ApiError(message, {
+      status: response.status,
+      body: parsed as ApiErrorBody,
+    });
+  }
+
+  if (parsed && typeof parsed === 'object' && 'success' in parsed) {
+    const envelope = parsed as ApiResponse<T>;
+    if (!envelope.success) {
+      throw new ApiError(envelope.message ?? 'Request was not successful', {
+        status: response.status,
+        body: parsed as ApiErrorBody,
+      });
+    }
+    return { data: envelope.data, message: envelope.message };
+  }
+
+  return { data: parsed as T };
+}

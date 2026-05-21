@@ -10,13 +10,22 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import Card from '@/components/ui/Card';
-import { MOCK_QUOTATIONS } from '@/lib/mock-data/quotations';
 import {
   PACKAGING_TYPE_OPTIONS,
   PACKAGING_TIER_OPTIONS,
   getPackWeightOptions,
-} from '@/lib/mock-data/packaging-materials';
-import { QuotationClientInfo, PackagingType } from '@/types';
+} from '@/lib/packaging/constants';
+import { fetchPackagingMaterials } from '@/lib/api/packaging';
+import { QuotationClientInfo, PackagingMaterialsData, PackagingType } from '@/types';
+import { ApiError } from '@/lib/api/errors';
+import {
+  downloadQuotationPdf,
+  extractQuotationIngredients,
+  generateQuotation,
+} from '@/lib/api/quotations';
+import type { GeneratedQuotation } from '@/lib/api/types';
+import { mapExtractedToLineItems } from '@/lib/quotations/map-extracted-lines';
+import { saveGeneratedQuotation } from '@/lib/quotations/quotation-storage';
 import toast from 'react-hot-toast';
 
 interface FormErrors {
@@ -37,14 +46,6 @@ const EMPTY_CLIENT_INFO: QuotationClientInfo = {
   packagingTier: '',
 };
 
-const MOCK_EXTRACTED_LINES: LineItem[] = [
-  { id: 'ex1', ingredientId: '5',   ingredientName: 'Whey Protein Concentrate', unit: 'KG', qtyUsed: 40, pricePerHundredKg: 890,   totalPrice: 356,   source: 'database' },
-  { id: 'ex2', ingredientId: '8',   ingredientName: 'Maltodextrin',             unit: 'KG', qtyUsed: 30, pricePerHundredKg: 65,    totalPrice: 19.5,  source: 'database' },
-  { id: 'ex3', ingredientId: '7',   ingredientName: 'Stevia Leaf Extract',      unit: 'KG', qtyUsed: 2,  pricePerHundredKg: 3400,  totalPrice: 68,    source: 'database' },
-  { id: 'ex4', ingredientId: 'ai1', ingredientName: 'Spirulina Powder',         unit: 'KG', qtyUsed: 5,  pricePerHundredKg: 2850,  totalPrice: 142.5, source: 'ai-estimated' },
-  { id: 'ex5', ingredientId: 'ai2', ingredientName: 'BCAAs Blend',              unit: 'KG', qtyUsed: 10, pricePerHundredKg: 1580,  totalPrice: 158,   source: 'ai-estimated' },
-];
-
 interface QuotationWizardProps {
   onComplete?: (id: string) => void;
 }
@@ -54,14 +55,48 @@ export default function QuotationWizard({ onComplete }: QuotationWizardProps) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [clientInfo, setClientInfo] = useState<QuotationClientInfo>(EMPTY_CLIENT_INFO);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [packagingMaterials, setPackagingMaterials] = useState<PackagingMaterialsData>({
+    jar: {},
+    sachet: {},
+  });
 
   const packWeightOptions = clientInfo.packagingType
-    ? getPackWeightOptions(clientInfo.packagingType as PackagingType)
+    ? getPackWeightOptions(clientInfo.packagingType as PackagingType, packagingMaterials)
     : [];
 
   useEffect(() => {
+    const type = clientInfo.packagingType as PackagingType | '';
+    if (!type) return;
+
+    let cancelled = false;
+    void fetchPackagingMaterials(type)
+      .then((data) => {
+        if (cancelled) return;
+        setPackagingMaterials((prev) => ({
+          jar: { ...prev.jar, ...data.jar },
+          sachet: { ...prev.sachet, ...data.sachet },
+        }));
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        const msg =
+          error instanceof ApiError
+            ? error.message
+            : 'Failed to load pack weights. Please try again.';
+        toast.error(msg);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [clientInfo.packagingType]);
+
+  useEffect(() => {
     if (!clientInfo.packagingType) return;
-    const options = getPackWeightOptions(clientInfo.packagingType as PackagingType);
+    const options = getPackWeightOptions(
+      clientInfo.packagingType as PackagingType,
+      packagingMaterials
+    );
     if (options.length === 0) {
       if (clientInfo.packWeightG) {
         setClientInfo((prev) => ({ ...prev, packWeightG: '' }));
@@ -71,12 +106,16 @@ export default function QuotationWizard({ onComplete }: QuotationWizardProps) {
     if (!options.some((o) => o.value === clientInfo.packWeightG)) {
       setClientInfo((prev) => ({ ...prev, packWeightG: options[0].value }));
     }
-  }, [clientInfo.packagingType, clientInfo.packWeightG]);
+  }, [clientInfo.packagingType, clientInfo.packWeightG, packagingMaterials]);
   const [lines, setLines] = useState<LineItem[]>([]);
   const [isExtracting, setIsExtracting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [pasteText, setPasteText] = useState('');
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [generatedQuotation, setGeneratedQuotation] = useState<GeneratedQuotation | null>(
+    null
+  );
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 
   const validateStep1 = (): boolean => {
     const e: FormErrors = {};
@@ -94,11 +133,10 @@ export default function QuotationWizard({ onComplete }: QuotationWizardProps) {
       setClientInfo((prev) => ({ ...prev, packagingType: '', packWeightG: '' }));
       return;
     }
-    const options = getPackWeightOptions(type as PackagingType);
     setClientInfo((prev) => ({
       ...prev,
       packagingType: type as PackagingType,
-      packWeightG: options[0]?.value ?? '',
+      packWeightG: '',
     }));
   };
 
@@ -106,28 +144,105 @@ export default function QuotationWizard({ onComplete }: QuotationWizardProps) {
     if (validateStep1()) setStep(2);
   };
 
-  const handleExtract = () => {
+  const handleExtract = async () => {
+    const hasFile = !!uploadedFile;
+    const hasText = !!pasteText.trim();
+    const productName = clientInfo.productName.trim();
+    const hasProductName = !!productName;
+
+    if (!hasFile && !hasText && !hasProductName) {
+      toast.error(
+        'Upload a file, paste an ingredient list, or enter a product name in Step 1'
+      );
+      return;
+    }
+
+    const extractInput = hasFile
+      ? { file: uploadedFile! }
+      : hasText
+        ? { text: pasteText }
+        : { productName };
+
     setIsExtracting(true);
-    setTimeout(() => {
-      setLines(MOCK_EXTRACTED_LINES.map((l) => ({ ...l })));
+    try {
+      const { data, message } = await extractQuotationIngredients(extractInput);
+
+      if (!data.ingredients?.length) {
+        toast.error('No ingredients were extracted from your input');
+        return;
+      }
+
+      const mapped = await mapExtractedToLineItems(data.ingredients);
+      setLines(mapped);
+      const sourceHint =
+        data.source === 'ai' ? ' (AI formulation — review quantities)' : '';
+      toast.success(
+        (message ??
+          `${data.count} ingredient${data.count !== 1 ? 's' : ''} extracted successfully`) +
+          sourceHint
+      );
+    } catch (error) {
+      const msg =
+        error instanceof ApiError
+          ? error.message
+          : 'Failed to extract ingredients. Please try again.';
+      toast.error(msg);
+    } finally {
       setIsExtracting(false);
-      toast.success('Ingredients extracted successfully!');
-    }, 2000);
+    }
   };
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
+    if (lines.length === 0) {
+      toast.error('Add at least one ingredient before generating');
+      return;
+    }
+
     setIsGenerating(true);
-    setTimeout(() => {
-      const newId = `q${MOCK_QUOTATIONS.length + 1}-${Date.now()}`;
-      toast.success(`Quotation #${newId.toUpperCase()} generated successfully!`);
+    try {
+      const { quotation, message } = await generateQuotation({
+        clientInfo,
+        lines,
+        file: uploadedFile,
+      });
+
+      saveGeneratedQuotation(quotation);
+      setGeneratedQuotation(quotation);
+      onComplete?.(quotation.id);
+
+      toast.success(
+        message ??
+          `Quotation ${quotation.quotationNumber} generated successfully`
+      );
+      router.push(`/quotations/${quotation.id}`);
+    } catch (error) {
+      const msg =
+        error instanceof ApiError
+          ? error.message
+          : 'Failed to generate quotation. Please try again.';
+      toast.error(msg);
+    } finally {
       setIsGenerating(false);
-      onComplete?.(newId);
-      router.push('/quotations');
-    }, 1500);
+    }
+  };
+
+  const handleDownloadPdf = () => {
+    const quotationId = generatedQuotation?.id;
+    if (!quotationId) {
+      toast.error('Generate the quotation first to download the PDF');
+      return;
+    }
+
+    downloadQuotationPdf(quotationId, {
+      filename: generatedQuotation?.quotationNumber
+        ? `${generatedQuotation.quotationNumber}.pdf`
+        : undefined,
+    });
+    toast.success('PDF download started');
   };
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className={step === 2 ? 'max-w-7xl mx-auto' : 'max-w-5xl mx-auto'}>
       <StepIndicator currentStep={step} />
 
       {/* STEP 1 */}
@@ -219,10 +334,12 @@ export default function QuotationWizard({ onComplete }: QuotationWizardProps) {
 
       {/* STEP 2 */}
       {step === 2 && (
-        <div className="grid lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,11fr)_minmax(0,13fr)] gap-3 lg:gap-4 items-start">
           {/* Left panel */}
-          <Card>
-            <h2 className="type-h3-18 text-[#0a0a0a] mb-4">Provide Product Information</h2>
+          <Card padding={false} className="p-5 w-full">
+            <div className="mb-3 min-h-9 flex items-center">
+              <h2 className="type-h3-18 text-[#0a0a0a]">Provide Product Information</h2>
+            </div>
             <FileUploadZone
               selectedFile={uploadedFile}
               onFileSelect={(f) => setUploadedFile(f)}
@@ -240,26 +357,48 @@ export default function QuotationWizard({ onComplete }: QuotationWizardProps) {
               placeholder="Paste ingredient list as text...&#10;e.g. Whey Protein: 40kg&#10;Maltodextrin: 30kg"
               value={pasteText}
               onChange={(e) => setPasteText(e.target.value)}
+              disabled={!!uploadedFile}
               className="w-full px-3 py-2 text-sm border border-[#c3c3c3] rounded-lg
                 focus:outline-none focus:border-[#314f2d] focus:ring-2 focus:ring-[#314f2d]/10
-                text-[#0a0a0a] placeholder:text-[#a3a29e] resize-none transition-colors"
+                text-[#0a0a0a] placeholder:text-[#a3a29e] resize-none transition-colors
+                disabled:opacity-60 disabled:cursor-not-allowed"
             />
+            <div className="flex items-center gap-3 my-4">
+              <div className="flex-1 h-px bg-[#c3c3c3]" />
+              <span className="text-xs text-[#a3a29e] font-medium">or</span>
+              <div className="flex-1 h-px bg-[#c3c3c3]" />
+            </div>
+            <div className="rounded-lg border border-[#f2f6ef] bg-[#f9fbf7] px-3 py-2.5">
+              <p className="text-xs font-medium text-[#373737]">Product name (from Step 1)</p>
+              <p className="mt-1 text-sm text-[#0a0a0a] truncate" title={clientInfo.productName}>
+                {clientInfo.productName.trim() || '—'}
+              </p>
+              <p className="mt-1.5 text-xs text-[#a3a29e] leading-snug">
+                If you skip file and paste, Extract uses this name for an AI ingredient
+                formulation. File and pasted text take priority.
+              </p>
+            </div>
             <Button
               className="mt-3 w-full"
-              onClick={handleExtract}
+              onClick={() => void handleExtract()}
+              disabled={isExtracting}
               loading={isExtracting}
               leftIcon={!isExtracting ? <Bot size={16} /> : undefined}
             >
-              {isExtracting ? 'Extracting Ingredients...' : 'Extract Ingredients'}
+              {isExtracting
+                ? 'Extracting Ingredients...'
+                : uploadedFile
+                  ? 'Extract from File'
+                  : pasteText.trim()
+                    ? 'Extract from Text'
+                    : 'Extract from Product Name (AI)'}
             </Button>
           </Card>
 
-          {/* Right panel */}
-          <div className="flex flex-col gap-4">
-            <Card padding={false} className="p-4">
-              <IngredientLineTable lines={lines} onChange={setLines} />
-            </Card>
-          </div>
+          {/* Right panel — aligned top/padding with left card */}
+          <Card padding={false} className="p-5 min-w-0 w-full">
+            <IngredientLineTable lines={lines} onChange={setLines} />
+          </Card>
 
           {/* Step navigation */}
           <div className="lg:col-span-2 flex items-center justify-between">
@@ -284,11 +423,22 @@ export default function QuotationWizard({ onComplete }: QuotationWizardProps) {
             <div className="flex items-center gap-3">
               <Button
                 variant="secondary"
-                onClick={() => toast.success('Quotation PDF downloaded')}
+                disabled={!generatedQuotation || isDownloadingPdf || isGenerating}
+                loading={isDownloadingPdf}
+                onClick={() => void handleDownloadPdf()}
+                title={
+                  generatedQuotation
+                    ? 'Download quotation PDF'
+                    : 'Available after you generate the quotation'
+                }
               >
                 Download PDF
               </Button>
-              <Button onClick={handleGenerate} loading={isGenerating}>
+              <Button
+                onClick={() => void handleGenerate()}
+                loading={isGenerating}
+                disabled={isGenerating || lines.length === 0}
+              >
                 {isGenerating ? 'Generating...' : 'Generate Quotation'}
               </Button>
             </div>

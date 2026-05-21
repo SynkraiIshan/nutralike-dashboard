@@ -4,7 +4,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { Plus, FileUp } from 'lucide-react';
 import { Ingredient } from '@/types';
 import { ApiError } from '@/lib/api/errors';
-import { fetchIngredients, mapIngredientFromApi } from '@/lib/api/ingredients';
+import {
+  fetchIngredients,
+  INGREDIENT_SORT_OPTIONS,
+  mapIngredientFromApi,
+  type IngredientSort,
+} from '@/lib/api/ingredients';
+import Select from '@/components/ui/Select';
 import type { ApiPagination } from '@/lib/api/types';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -22,6 +28,7 @@ export default function IngredientsPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [sort, setSort] = useState<'' | IngredientSort>('');
   const [isLoading, setIsLoading] = useState(true);
   const [isAddEditOpen, setIsAddEditOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
@@ -34,7 +41,7 @@ export default function IngredientsPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch]);
+  }, [debouncedSearch, sort]);
 
   const loadIngredients = useCallback(async () => {
     setIsLoading(true);
@@ -43,6 +50,7 @@ export default function IngredientsPage() {
         page,
         limit: PAGE_SIZE,
         search: debouncedSearch || undefined,
+        sort: sort || undefined,
       });
       setIngredients(data.ingredients.map(mapIngredientFromApi));
       setPagination(data.pagination);
@@ -57,7 +65,7 @@ export default function IngredientsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, debouncedSearch]);
+  }, [page, debouncedSearch, sort]);
 
   useEffect(() => {
     loadIngredients();
@@ -77,13 +85,11 @@ export default function IngredientsPage() {
     void loadIngredients();
   };
 
-  const handleDelete = (id: string) => {
-    setIngredients((prev) => prev.filter((i) => i.id !== id));
+  const handleDelete = () => {
     void loadIngredients();
   };
 
-  const handleImport = (newIngredients: Ingredient[]) => {
-    setIngredients((prev) => [...newIngredients, ...prev]);
+  const handleImport = () => {
     void loadIngredients();
   };
 
@@ -92,14 +98,25 @@ export default function IngredientsPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 justify-between">
-        <SearchBar
-          value={search}
-          onChange={setSearch}
-          placeholder="Search ingredients..."
-          className="w-full sm:w-72"
-        />
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto sm:flex-1 sm:max-w-2xl sm:items-center">
+          <SearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder="Search ingredients..."
+            className="w-full sm:flex-1 min-w-0"
+          />
+          <Select
+            label="Sort by"
+            labelPosition="inline"
+            options={INGREDIENT_SORT_OPTIONS}
+            value={sort}
+            onChange={(e) => setSort(e.target.value as '' | IngredientSort)}
+            className="w-full sm:min-w-[11rem]"
+            disabled={isLoading}
+          />
+        </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-[#555555]">
+          <span className="text-sm text-dim-gray">
             {totalCount} ingredient{totalCount !== 1 ? 's' : ''}
           </span>
           <Button variant="secondary" leftIcon={<FileUp size={15} />} onClick={() => setIsImportOpen(true)}>

@@ -158,7 +158,7 @@ export default function IngredientLineTable({ lines, onChange }: IngredientLineT
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-3 min-h-9">
         <p className="type-h4 text-[#0a0a0a] uppercase tracking-wide">Ingredients</p>
         <Button size="sm" variant="secondary" leftIcon={<Plus size={13} />} onClick={addRow}>
           Add Row
@@ -171,12 +171,21 @@ export default function IngredientLineTable({ lines, onChange }: IngredientLineT
         </div>
       ) : (
         <div className="border border-[#c3c3c3] rounded-xl overflow-hidden" ref={containerRef}>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-hidden">
+            <table className="w-full table-fixed text-sm">
+              <colgroup>
+                <col className="w-[28%]" />
+                <col className="w-[10%]" />
+                <col className="w-[12%]" />
+                <col className="w-[14%]" />
+                <col className="w-[12%]" />
+                <col className="w-[12%]" />
+                <col className="w-[12%]" />
+              </colgroup>
               <thead>
                 <tr className="bg-[#f2f6ef] border-b border-[#c3c3c3]">
                   {['Ingredient Name', 'Unit', 'Qty (KG)', '₹/100KG', 'Total', 'Source', ''].map((h) => (
-                    <th key={h} className="px-3 py-2.5 text-left text-[11px] font-semibold text-[#555555] uppercase tracking-wide whitespace-nowrap">
+                    <th key={h} className="px-2 py-2.5 text-left text-[11px] font-semibold text-[#555555] uppercase tracking-wide">
                       {h}
                     </th>
                   ))}
@@ -190,7 +199,7 @@ export default function IngredientLineTable({ lines, onChange }: IngredientLineT
                   return (
                     <tr key={line.id} className={i % 2 === 0 ? 'bg-white' : 'bg-[#f2f6ef]/50'}>
                       {/* Name autocomplete */}
-                      <td className="px-3 py-2 relative min-w-[160px]">
+                      <td className="px-2 py-2 relative min-w-0">
                         <input
                           type="text"
                           value={displayVal}
@@ -217,7 +226,7 @@ export default function IngredientLineTable({ lines, onChange }: IngredientLineT
                       </td>
 
                       {/* Unit */}
-                      <td className="px-3 py-2">
+                      <td className="px-2 py-2">
                         <select
                           value={line.unit}
                           onChange={(e) => updateLine(line.id, { unit: e.target.value as Unit })}
@@ -228,21 +237,21 @@ export default function IngredientLineTable({ lines, onChange }: IngredientLineT
                       </td>
 
                       {/* Qty */}
-                      <td className="px-3 py-2">
+                      <td className="px-2 py-2">
                         <input
                           type="number"
                           min="0.01"
                           step="0.01"
                           value={line.qtyUsed}
                           onChange={(e) => updateLine(line.id, { qtyUsed: Number(e.target.value) })}
-                          className="w-20 px-2 py-1.5 text-[13px] border border-[#c3c3c3] rounded-lg focus:outline-none focus:border-[#314f2d] bg-white text-right"
+                          className="w-full max-w-[5rem] px-2 py-1.5 text-[13px] border border-[#c3c3c3] rounded-lg focus:outline-none focus:border-[#314f2d] bg-white text-right"
                         />
                       </td>
 
                       {/* Price */}
-                      <td className="px-3 py-2">
-                        <div className="flex items-center gap-1">
-                          <span className="text-[#555555] text-[12px]">₹</span>
+                      <td className="px-2 py-2">
+                        <div className="flex items-center gap-1 min-w-0">
+                          <span className="text-[#555555] text-[12px] shrink-0">₹</span>
                           <input
                             type="number"
                             min="0"
@@ -251,18 +260,18 @@ export default function IngredientLineTable({ lines, onChange }: IngredientLineT
                             onChange={(e) =>
                               updateLine(line.id, { pricePerHundredKg: Number(e.target.value) })
                             }
-                            className="w-24 px-2 py-1.5 text-[13px] border border-[#c3c3c3] rounded-lg focus:outline-none focus:border-[#314f2d] bg-white text-right"
+                            className="w-full min-w-0 px-2 py-1.5 text-[13px] border border-[#c3c3c3] rounded-lg focus:outline-none focus:border-[#314f2d] bg-white text-right"
                           />
                         </div>
                       </td>
 
                       {/* Total */}
-                      <td className="px-3 py-2 font-mono text-[13px] text-[#0a0a0a] whitespace-nowrap">
+                      <td className="px-2 py-2 font-mono text-[13px] text-[#0a0a0a]">
                         ₹ {line.totalPrice.toFixed(2)}
                       </td>
 
                       {/* Source badge */}
-                      <td className="px-3 py-2">
+                      <td className="px-2 py-2">
                         {line.source === 'ai-estimated' ? (
                           <span className="inline-flex items-center gap-1">
                             <Badge label="AI" variant="ai" />
@@ -273,7 +282,7 @@ export default function IngredientLineTable({ lines, onChange }: IngredientLineT
                       </td>
 
                       {/* Remove */}
-                      <td className="px-3 py-2">
+                      <td className="px-2 py-2">
                         <button
                           onClick={() => removeRow(line.id)}
                           className="p-1 rounded text-[#a3a29e] hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer"

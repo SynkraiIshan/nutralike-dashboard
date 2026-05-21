@@ -9,7 +9,9 @@ import {
 import {
   PACKAGING_TYPE_OPTIONS,
   getPackWeightOptions,
-} from '@/lib/mock-data/packaging-materials';
+} from '@/lib/packaging/constants';
+import { updatePackagingItem } from '@/lib/api/packaging';
+import { ApiError } from '@/lib/api/errors';
 import Select from '@/components/ui/Select';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -18,25 +20,35 @@ import toast from 'react-hot-toast';
 interface PackagingMaterialsTableProps {
   materials: PackagingMaterialsData;
   onChange: (materials: PackagingMaterialsData) => void;
+  loading?: boolean;
+  onPackagingTypeChange?: (type: PackagingType) => void;
 }
 
 export default function PackagingMaterialsTable({
   materials,
   onChange,
+  loading = false,
+  onPackagingTypeChange,
 }: PackagingMaterialsTableProps) {
   const [packagingType, setPackagingType] = useState<PackagingType>('jar');
-  const weightOptions = getPackWeightOptions(packagingType);
+  const weightOptions = getPackWeightOptions(packagingType, materials);
   const [packWeight, setPackWeight] = useState(weightOptions[0]?.value ?? '');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftMin, setDraftMin] = useState('');
   const [draftMax, setDraftMax] = useState('');
+  const [savingId, setSavingId] = useState<string | null>(null);
 
   useEffect(() => {
-    const options = getPackWeightOptions(packagingType);
+    const options = getPackWeightOptions(packagingType, materials);
     if (!options.some((o) => o.value === packWeight)) {
       setPackWeight(options[0]?.value ?? '');
     }
-  }, [packagingType, packWeight]);
+  }, [packagingType, packWeight, materials]);
+
+  const handlePackagingTypeChange = (type: PackagingType) => {
+    setPackagingType(type);
+    onPackagingTypeChange?.(type);
+  };
 
   const rows: PackagingMaterialItem[] =
     materials[packagingType]?.[packWeight] ?? [];
@@ -53,7 +65,7 @@ export default function PackagingMaterialsTable({
     setDraftMax('');
   };
 
-  const saveEdit = (id: string) => {
+  const saveEdit = async (id: string) => {
     const min = parseFloat(draftMin);
     const max = parseFloat(draftMax);
     if (Number.isNaN(min) || Number.isNaN(max) || min < 0 || max < 0) {
@@ -64,17 +76,28 @@ export default function PackagingMaterialsTable({
       toast.error('Min cost cannot exceed max cost');
       return;
     }
-    onChange({
-      ...materials,
-      [packagingType]: {
-        ...materials[packagingType],
-        [packWeight]: rows.map((r) =>
-          r.id === id ? { ...r, minCost: min, maxCost: max } : r
-        ),
-      },
-    });
-    toast.success('Packaging cost updated');
-    cancelEdit();
+
+    setSavingId(id);
+    try {
+      const { item, message } = await updatePackagingItem(id, { minCost: min, maxCost: max });
+      onChange({
+        ...materials,
+        [packagingType]: {
+          ...materials[packagingType],
+          [packWeight]: rows.map((r) => (r.id === id ? item : r)),
+        },
+      });
+      toast.success(message ?? 'Packaging cost updated');
+      cancelEdit();
+    } catch (error) {
+      const msg =
+        error instanceof ApiError
+          ? error.message
+          : 'Failed to update packaging cost. Please try again.';
+      toast.error(msg);
+    } finally {
+      setSavingId(null);
+    }
   };
 
   return (
@@ -84,7 +107,8 @@ export default function PackagingMaterialsTable({
           label="Packaging type"
           options={[...PACKAGING_TYPE_OPTIONS]}
           value={packagingType}
-          onChange={(e) => setPackagingType(e.target.value as PackagingType)}
+          onChange={(e) => handlePackagingTypeChange(e.target.value as PackagingType)}
+          disabled={loading}
           className="w-full sm:w-48"
         />
         {weightOptions.length > 0 ? (
@@ -94,11 +118,14 @@ export default function PackagingMaterialsTable({
             value={packWeight}
             onChange={(e) => setPackWeight(e.target.value)}
             className="w-full sm:w-40"
+            disabled={loading}
           />
         ) : null}
       </div>
 
-      {rows.length === 0 ? (
+      {loading ? (
+        <p className="text-sm text-[#555555] py-8 text-center">Loading packaging materials…</p>
+      ) : rows.length === 0 ? (
         <p className="text-sm text-[#555555] py-8 text-center border border-dashed border-[#c3c3c3] rounded-xl">
           No packaging materials configured for {packagingType}
           {packWeight ? ` · ${packWeight}` : ''}.
@@ -162,7 +189,9 @@ export default function PackagingMaterialsTable({
                             size="sm"
                             variant="primary"
                             leftIcon={<Check size={13} />}
-                            onClick={() => saveEdit(row.id)}
+                            onClick={() => void saveEdit(row.id)}
+                            loading={savingId === row.id}
+                            disabled={savingId !== null}
                           >
                             Save
                           </Button>
@@ -171,6 +200,7 @@ export default function PackagingMaterialsTable({
                             variant="ghost"
                             leftIcon={<X size={13} />}
                             onClick={cancelEdit}
+                            disabled={savingId !== null}
                           >
                             Cancel
                           </Button>
@@ -181,6 +211,7 @@ export default function PackagingMaterialsTable({
                           variant="secondary"
                           leftIcon={<Pencil size={13} />}
                           onClick={() => startEdit(row)}
+                          disabled={savingId !== null || editingId !== null}
                         >
                           Edit
                         </Button>

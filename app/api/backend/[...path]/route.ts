@@ -21,12 +21,26 @@ async function proxyRequest(request: NextRequest, context: RouteContext) {
   const search = request.nextUrl.search;
   const url = `${getApiBaseUrl()}${backendPath}${search}`;
 
-  const headers = new Headers(getDefaultHeaders());
+  const contentType = request.headers.get('content-type');
+  const isMultipart = contentType?.includes('multipart/form-data');
+  const isPdfDownload = backendPath.endsWith('/pdf');
+
+  const headers = new Headers();
+  headers.set('ngrok-skip-browser-warning', 'true');
   headers.set('Authorization', `Bearer ${token}`);
 
-  const contentType = request.headers.get('content-type');
-  if (contentType?.includes('multipart/form-data')) {
-    headers.delete('Content-Type');
+  if (isPdfDownload) {
+    headers.set('Accept', 'application/pdf, application/octet-stream, */*');
+  } else {
+    headers.set('Accept', 'application/json');
+  }
+
+  if (isMultipart && contentType) {
+    headers.set('Content-Type', contentType);
+  } else if (!isPdfDownload) {
+    new Headers(getDefaultHeaders()).forEach((value, key) => {
+      if (key.toLowerCase() !== 'authorization') headers.set(key, value);
+    });
   }
 
   const init: RequestInit = {
@@ -43,11 +57,25 @@ async function proxyRequest(request: NextRequest, context: RouteContext) {
   const backendRes = await fetch(url, init);
   const responseBody = await backendRes.arrayBuffer();
 
+  const responseHeaders = new Headers();
+  const backendContentType = backendRes.headers.get('Content-Type');
+  if (backendContentType) {
+    responseHeaders.set('Content-Type', backendContentType);
+  } else if (isPdfDownload) {
+    responseHeaders.set('Content-Type', 'application/pdf');
+  } else {
+    responseHeaders.set('Content-Type', 'application/json');
+  }
+
+  const disposition = backendRes.headers.get('Content-Disposition');
+  if (disposition) responseHeaders.set('Content-Disposition', disposition);
+
+  const contentLength = backendRes.headers.get('Content-Length');
+  if (contentLength) responseHeaders.set('Content-Length', contentLength);
+
   return new NextResponse(responseBody, {
     status: backendRes.status,
-    headers: {
-      'Content-Type': backendRes.headers.get('Content-Type') ?? 'application/json',
-    },
+    headers: responseHeaders,
   });
 }
 

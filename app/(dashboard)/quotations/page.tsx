@@ -1,73 +1,102 @@
 'use client';
-import { useState } from 'react';
+
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Plus } from 'lucide-react';
-import { Quotation, QuotationStatus } from '@/types';
-import { MOCK_QUOTATIONS } from '@/lib/mock-data/quotations';
+import { Plus, RefreshCw } from 'lucide-react';
+import type { ReportQuotationRecord } from '@/types';
+import { fetchReportQuotations } from '@/lib/api/reports';
+import { ApiError } from '@/lib/api/errors';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import SearchBar from '@/components/ui/SearchBar';
-import Select from '@/components/ui/Select';
 import QuotationTable from '@/components/quotations/QuotationTable';
 import Pagination from '@/components/ui/Pagination';
+import toast from 'react-hot-toast';
 
-const STATUS_OPTIONS = [
-  { value: '',          label: 'All Statuses' },
-  { value: 'draft',     label: 'Draft' },
-  { value: 'generated', label: 'Generated' },
-  { value: 'sent',      label: 'Sent' },
-  { value: 'archived',  label: 'Archived' },
-];
-
-const PAGE_SIZE = 8;
+const PAGE_LIMIT = 20;
 
 export default function QuotationsPage() {
-  const [quotations] = useState<Quotation[]>(MOCK_QUOTATIONS);
+  const [quotations, setQuotations] = useState<ReportQuotationRecord[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
-  const filtered = quotations.filter((q) => {
-    const matchSearch =
-      q.clientName.toLowerCase().includes(search.toLowerCase()) ||
-      q.productName.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = !status || q.status === status;
-    return matchSearch && matchStatus;
-  });
+  const loadQuotations = useCallback(async (pageNum: number) => {
+    setLoading(true);
+    try {
+      const { quotations: rows, pagination } = await fetchReportQuotations({
+        page: pageNum,
+        limit: PAGE_LIMIT,
+      });
+      setQuotations(rows);
+      setPage(pagination.page);
+      setTotalPages(pagination.totalPages);
+      setTotal(pagination.total);
+    } catch (error) {
+      const msg =
+        error instanceof ApiError
+          ? error.message
+          : 'Failed to load quotations. Please try again.';
+      toast.error(msg);
+      setQuotations([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  useEffect(() => {
+    void loadQuotations(page);
+  }, [page, loadQuotations]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return quotations;
+    return quotations.filter(
+      (row) =>
+        row.clientName.toLowerCase().includes(q) ||
+        row.productName.toLowerCase().includes(q) ||
+        row.quotationNumber.toLowerCase().includes(q)
+    );
+  }, [quotations, search]);
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Action bar */}
+    <div className="flex flex-col gap-4 max-w-6xl">
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 justify-between">
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex items-center gap-2 w-full sm:w-auto flex-1">
           <SearchBar
             value={search}
-            onChange={(v) => { setSearch(v); setPage(1); }}
-            placeholder="Search quotations..."
-            className="w-full sm:w-60"
+            onChange={setSearch}
+            placeholder="Search quotation #, client, or product…"
+            className="w-full sm:flex-1 sm:max-w-md"
           />
-          <Select
-            options={STATUS_OPTIONS}
-            value={status}
-            onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-            className="w-36"
-          />
+          <Button
+            variant="secondary"
+            size="sm"
+            leftIcon={<RefreshCw size={14} />}
+            onClick={() => void loadQuotations(page)}
+            loading={loading}
+          >
+            Refresh
+          </Button>
         </div>
         <Link href="/quotations/new">
           <Button leftIcon={<Plus size={15} />}>Create Quotation</Button>
         </Link>
       </div>
 
-      <div className="text-sm text-[#555555]">
-        {filtered.length} quotation{filtered.length !== 1 ? 's' : ''} found
-      </div>
+      <p className="text-sm text-[#555555]">
+        {loading
+          ? 'Loading…'
+          : search.trim()
+            ? `${filtered.length} of ${total} on this page match your search`
+            : `${total} quotation${total !== 1 ? 's' : ''}`}
+      </p>
 
       <Card padding={false}>
-        <QuotationTable quotations={paginated} />
-        <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+        <QuotationTable quotations={filtered} loading={loading} />
+        {!loading && <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />}
       </Card>
     </div>
   );

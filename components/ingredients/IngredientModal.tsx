@@ -6,7 +6,11 @@ import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import Button from '@/components/ui/Button';
 import { ApiError } from '@/lib/api/errors';
-import { createIngredient, mapIngredientFromApi } from '@/lib/api/ingredients';
+import {
+  createIngredient,
+  mapIngredientFromApi,
+  updateIngredient,
+} from '@/lib/api/ingredients';
 import { INGREDIENT_UNIT_OPTIONS } from '@/lib/units';
 import toast from 'react-hot-toast';
 
@@ -68,26 +72,26 @@ export default function IngredientModal({
     if (!validate()) return;
     setSaving(true);
 
+    const payload = {
+      name: form.name.trim(),
+      unit: form.unit,
+      pricePerUnit: Number(form.pricePerHundredKg),
+    };
+
     try {
       if (isEdit && ingredient) {
-        const saved: Ingredient = {
-          ...ingredient,
-          name: form.name.trim(),
-          unit: form.unit,
-          pricePerHundredKg: Number(form.pricePerHundredKg),
-          lastUpdated: new Date().toISOString(),
-        };
+        const { data: updated, message } = await updateIngredient(
+          ingredient.id,
+          payload
+        );
+        const saved = mapIngredientFromApi(updated);
         onSave();
-        toast.success(`"${saved.name}" updated successfully`);
+        toast.success(message ?? `"${saved.name}" updated successfully`);
         onClose();
         return;
       }
 
-      const { data: created, message } = await createIngredient({
-        name: form.name.trim(),
-        unit: form.unit,
-        pricePerUnit: Number(form.pricePerHundredKg),
-      });
+      const { data: created, message } = await createIngredient(payload);
       const saved = mapIngredientFromApi(created);
       onSave();
       toast.success(message ?? `"${saved.name}" added successfully`);
@@ -96,7 +100,9 @@ export default function IngredientModal({
       const message =
         error instanceof ApiError
           ? error.message
-          : 'Failed to add ingredient. Please try again.';
+          : isEdit
+            ? 'Failed to update ingredient. Please try again.'
+            : 'Failed to add ingredient. Please try again.';
       toast.error(message);
     } finally {
       setSaving(false);
@@ -118,6 +124,7 @@ export default function IngredientModal({
           onChange={(e) => setForm({ ...form, name: e.target.value })}
           error={errors.name}
           required
+          disabled={saving}
         />
         <Select
           label="Unit"
@@ -125,6 +132,7 @@ export default function IngredientModal({
           value={form.unit}
           onChange={(e) => setForm({ ...form, unit: e.target.value as Unit })}
           required
+          disabled={saving}
         />
         <Input
           label="Price per 100 KG (₹)"
@@ -137,8 +145,9 @@ export default function IngredientModal({
           error={errors.pricePerHundredKg}
           leftAddon="₹"
           required
+          disabled={saving}
         />
-        <div className="flex items-center gap-3 pt-2 justify-end border-t border-[#f2f6ef] mt-1">
+        <div className="flex items-center gap-3 pt-2 justify-end border-t border-white-smoke mt-1">
           <Button variant="secondary" onClick={onClose} disabled={saving}>Cancel</Button>
           <Button onClick={handleSave} loading={saving}>
             {isEdit ? 'Save Changes' : 'Add Ingredient'}

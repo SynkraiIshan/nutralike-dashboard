@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AUTH_TOKEN_COOKIE, getTokenMaxAgeSeconds } from '@/lib/auth';
+import { AUTH_TOKEN_COOKIE, AUTH_USER_COOKIE, getTokenMaxAgeSeconds } from '@/lib/auth';
 import { getDefaultHeaders } from '@/lib/api/config';
 import type { LoginApiResponse } from '@/lib/api/types';
 import { getApiBaseUrl, getApiTimeoutMs } from '@/lib/env';
@@ -82,12 +82,21 @@ export async function POST(request: NextRequest) {
     message: payload.message,
   });
 
-  response.cookies.set(AUTH_TOKEN_COOKIE, token, {
-    httpOnly: true,
+  const cookieOptions = {
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: 'lax' as const,
     path: '/',
     maxAge,
+  };
+
+  response.cookies.set(AUTH_TOKEN_COOKIE, token, {
+    ...cookieOptions,
+    httpOnly: true,
+  });
+
+  response.cookies.set(AUTH_USER_COOKIE, encodeURIComponent(JSON.stringify(user)), {
+    ...cookieOptions,
+    httpOnly: false,
   });
 
   return response;

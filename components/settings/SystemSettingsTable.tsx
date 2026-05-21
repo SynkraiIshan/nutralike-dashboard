@@ -2,7 +2,9 @@
 import { useState } from 'react';
 import { Pencil, Check, X } from 'lucide-react';
 import { SystemSetting } from '@/types';
-import { formatSettingKey } from '@/lib/mock-data/packaging-materials';
+import { updateSetting } from '@/lib/api/settings';
+import { ApiError } from '@/lib/api/errors';
+import { formatSettingKey } from '@/lib/settings/format';
 import { formatDate } from '@/lib/utils';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -11,11 +13,17 @@ import toast from 'react-hot-toast';
 interface SystemSettingsTableProps {
   settings: SystemSetting[];
   onChange: (settings: SystemSetting[]) => void;
+  loading?: boolean;
 }
 
-export default function SystemSettingsTable({ settings, onChange }: SystemSettingsTableProps) {
+export default function SystemSettingsTable({
+  settings,
+  onChange,
+  loading = false,
+}: SystemSettingsTableProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftValue, setDraftValue] = useState('');
+  const [savingId, setSavingId] = useState<string | null>(null);
 
   const startEdit = (row: SystemSetting) => {
     setEditingId(row.id);
@@ -27,21 +35,53 @@ export default function SystemSettingsTable({ settings, onChange }: SystemSettin
     setDraftValue('');
   };
 
-  const saveEdit = (id: string) => {
-    if (!draftValue.trim()) {
+  const saveEdit = async (row: SystemSetting) => {
+    const value = draftValue.trim();
+    if (!value) {
       toast.error('Value cannot be empty');
       return;
     }
-    onChange(
-      settings.map((s) =>
-        s.id === id
-          ? { ...s, value: draftValue.trim(), updatedAt: new Date().toISOString() }
-          : s
-      )
-    );
-    toast.success('Setting updated');
-    cancelEdit();
+
+    setSavingId(row.id);
+    try {
+      const { setting, message } = await updateSetting(row.key, { value });
+      onChange(
+        settings.map((s) =>
+          s.id === row.id
+            ? {
+                id: setting.id,
+                key: setting.key,
+                value: setting.value,
+                description: setting.description,
+                updatedAt: setting.updatedAt,
+              }
+            : s
+        )
+      );
+      toast.success(message ?? 'Setting updated');
+      cancelEdit();
+    } catch (error) {
+      const msg =
+        error instanceof ApiError
+          ? error.message
+          : 'Failed to update setting. Please try again.';
+      toast.error(msg);
+    } finally {
+      setSavingId(null);
+    }
   };
+
+  if (loading) {
+    return (
+      <p className="px-6 py-10 text-sm text-[#555555] text-center">Loading settings…</p>
+    );
+  }
+
+  if (settings.length === 0) {
+    return (
+      <p className="px-6 py-10 text-sm text-[#555555] text-center">No settings found.</p>
+    );
+  }
 
   return (
     <div className="overflow-x-auto">
@@ -92,11 +132,19 @@ export default function SystemSettingsTable({ settings, onChange }: SystemSettin
                         size="sm"
                         variant="primary"
                         leftIcon={<Check size={13} />}
-                        onClick={() => saveEdit(row.id)}
+                        onClick={() => void saveEdit(row)}
+                        loading={savingId === row.id}
+                        disabled={savingId !== null}
                       >
                         Save
                       </Button>
-                      <Button size="sm" variant="ghost" leftIcon={<X size={13} />} onClick={cancelEdit}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        leftIcon={<X size={13} />}
+                        onClick={cancelEdit}
+                        disabled={savingId !== null}
+                      >
                         Cancel
                       </Button>
                     </div>
@@ -106,6 +154,7 @@ export default function SystemSettingsTable({ settings, onChange }: SystemSettin
                       variant="secondary"
                       leftIcon={<Pencil size={13} />}
                       onClick={() => startEdit(row)}
+                      disabled={savingId !== null || editingId !== null}
                     >
                       Edit
                     </Button>
